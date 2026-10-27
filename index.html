@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PayFollow – Suivi des paiements clients</title>
+<style>
+:root{--bg:#ffffff;--card:#fff;--tx:#10201a;--mut:#64748b;--bd:#e4e9e7;--em:#059669;--em2:#047857;--soft:#e8f8f1;--red:#dc2626;--redb:#fee2e2;--amb:#b45309;--ambb:#fef3c7;--blue:#2563eb;--blueb:#dbeafe;--sh:0 1px 3px rgba(16,32,26,.08),0 6px 16px rgba(16,32,26,.05);color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{display:flex;flex-direction:column;min-height:100vh}
+aside{background:var(--card);border-bottom:1px solid var(--bd);padding:10px 28px;display:flex;align-items:center;gap:6px;position:sticky;top:0;z-index:15}
+main{flex:1;min-width:0;padding:28px 32px 40px;max-width:1240px;width:100%;margin:0 auto}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;padding:4px 8px 16px}
+.lg{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#10b981,#047857);color:#fff;display:grid;place-items:center}
+.nv{display:flex;align-items:center;gap:11px;padding:10px 12px;border:0;background:none;border-radius:10px;color:var(--mut);font:inherit;font-weight:600;cursor:pointer;text-align:left;width:100%}
+.nv:hover,.nv.on{background:var(--soft);color:var(--em)}
+.ic{width:20px;height:20px;flex:none}
+#bot{display:none;position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:20}
+#bot .nv{flex:1;flex-direction:column;gap:2px;font-size:11px;padding:6px 2px;align-items:center}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;box-shadow:var(--sh);padding:18px}
+h1{font-size:24px;margin:0}h3{margin:0 0 12px;font-size:16px}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}.ph .acts{flex-wrap:wrap;gap:8px}.ph .btn{white-space:nowrap}
+.mut{color:var(--mut)}.sm{font-size:13px}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-bottom:16px}
+.stat{display:flex;gap:14px;align-items:center}
+.si{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:none}
+.si.g{background:var(--soft);color:var(--em)}.si.b{background:var(--blueb);color:var(--blue)}.si.r{background:var(--redb);color:var(--red)}.si.a{background:var(--ambb);color:var(--amb)}
+.big{font-size:21px;font-weight:800}
+.g2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:10px 15px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.btn.pri{background:var(--em);border-color:var(--em);color:#fff}.btn.pri:hover{background:var(--em2)}
+.btn.sm{padding:6px 11px;font-size:13px}.btn.on{background:var(--soft);color:var(--em);border-color:var(--em)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.ib{border:0;background:none;color:var(--mut);padding:7px;border-radius:8px;cursor:pointer;display:grid}.ib:hover{background:var(--soft);color:var(--em)}
+.row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--bd);flex-wrap:wrap}.row:last-child{border:0}
+.grow{flex:1;min-width:150px}.r{text-align:right}
+.acts{display:flex;align-items:center;gap:4px;margin-left:auto}
+.bd{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;white-space:nowrap}
+.bd.paye{background:var(--soft);color:var(--em)}.bd.partiel{background:var(--blueb);color:var(--blue)}.bd.attente{background:var(--ambb);color:var(--amb)}.bd.retard{background:var(--redb);color:var(--red)}
+.neg{color:var(--red)}.pos{color:var(--em)}
+.av{width:40px;height:40px;border-radius:50%;background:var(--soft);color:var(--em);display:grid;place-items:center;font-weight:800;flex:none}
+.bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.sb{position:relative;flex:1;min-width:200px}.sb .ic{position:absolute;left:12px;top:11px;color:var(--mut)}.sb input{padding-left:40px}
+input,select,textarea{width:100%;font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 12px}
+select{width:auto}label select{width:100%}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:12px;color:var(--mut)}label input,label select,label textarea{margin-top:5px}
+input:focus,select:focus,textarea:focus,.btn:focus-visible,.nv:focus-visible{outline:2px solid var(--em)}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;color:var(--mut);font-size:12px;padding:8px 10px 8px 0;border-bottom:1px solid var(--bd)}td{padding:11px 10px 11px 0;border-bottom:1px solid var(--bd)}tr:last-child td{border:0}.tw{overflow-x:auto}
+.ov{position:fixed;inset:0;background:rgba(5,15,10,.5);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+.md{background:var(--card);width:100%;max-width:480px;max-height:90vh;overflow:auto;border-radius:18px 18px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px))}
+.mf{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;flex-wrap:wrap}
+#toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:#10201a;color:#fff;padding:10px 16px;border-radius:99px;opacity:0;pointer-events:none;transition:.25s;z-index:60;font-size:14px;max-width:90vw}#toast.on{opacity:1;transform:translate(-50%,0)}
+.seg{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px}
+.dt{width:46px;text-align:center;background:var(--soft);color:var(--em);border-radius:10px;padding:5px 0;font-weight:800;line-height:1.1;flex:none}
+svg .l1{fill:none;stroke:var(--em);stroke-width:3;stroke-linejoin:round}svg .l2{fill:none;stroke:var(--mut);stroke-opacity:.5;stroke-width:3;stroke-linejoin:round}svg .ar{fill:var(--em);opacity:.1}svg .d1{fill:var(--card);stroke:var(--em);stroke-width:3}svg .ax{fill:var(--mut);font-size:17px}svg .gl{stroke:var(--bd)}
+.mo{display:none}
+.tn{display:flex;gap:4px}.tn .nv{width:auto}aside .logo{padding:0 16px 0 0}.tr{margin-left:auto;display:flex;align-items:center;gap:10px}.cc label,.tr label{margin:0;display:flex;align-items:center;gap:8px}.cc select,.tr select{width:auto;margin:0}
+.sc{padding:16px}.sc .sh{display:flex;align-items:center;gap:8px;font-weight:700}.sc .big{margin-top:6px}.sc.g{background:var(--soft);border-color:var(--em)}.sc.r{background:var(--redb);border-color:var(--red);text-align:left}.sc .si{width:26px;height:26px;border-radius:50%}.sc .si .ic{width:15px;height:15px}.sc .si.g,.sc .si.b,.sc .si.r,.sc .si.a{background:var(--card)}
+@media(min-width:600px){.ov{align-items:center;padding:20px}.md{border-radius:18px}}
+@media(min-width:861px){h1{font-size:20px}.sc{background:#f4f5f6;border-color:transparent;box-shadow:0 4px 12px rgba(16,32,26,.1)}.g4{gap:20px;margin-bottom:24px}.g2{gap:0}.g2>.col:first-child{padding-right:24px}.g2>.col+.col{padding-left:24px;border-left:1px solid var(--bd)}}
+@media(max-width:860px){aside{display:none}#bot{display:flex}main{padding:14px 14px 96px}.g2{grid-template-columns:1fr}.mo{display:block}.logo.mo{display:flex}}
+</style></head><body>
+<div class="app"><aside id="side"></aside><main id="main"></main></div>
+<nav id="bot"></nav><div id="modal"></div><div id="toast" role="status"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/dist/umd/supabase.js"></script>
+<script>
+const SB_URL="https://xnjihczlakirxvtuepwt.supabase.co",SB_KEY="sb_publishable_tJUgfgVOjUhhSykLdr_YGw_Oa4YPCqN",db=supabase.createClient(SB_URL,SB_KEY),$=s=>document.querySelector(s),pad=n=>String(n).padStart(2,"0");
+const ld=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const off=o=>{const d=new Date();d.setDate(d.getDate()+o);return ld(d)},T=off(0);
+const sum=a=>a.reduce((x,y)=>x+y,0),num=n=>Math.round(n).toLocaleString("fr-FR"),money=n=>num(n)+" "+cu(),CURS={FCFA:"FCFA",EUR:"€",USD:"$",CAD:"$ CA",MAD:"MAD",GNF:"GNF"},cu=()=>CURS[S&&S.cur]||"FCFA",curSel=()=>'<label>Devise<select id="fc">'+Object.keys(CURS).map(k=>`<option value="${k}" ${cu()==CURS[k]?"selected":""}>${CURS[k]}</option>`).join("")+'</select></label>';
+const fd=s=>new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:"numeric"});
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const uid=()=>crypto.randomUUID();
+const I={home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.5.6 3.5 2.6 3.5 6"/>',wallet:'<path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 7l12-3v3M16 13h3"/>',bell:'<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',chart:'<path d="M4 20V4M4 20h16"/><path d="M8 16v-4M12 16V8M16 16v-6"/>',plus:'<path d="M12 5v14M5 12h14"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',check:'<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',alert:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>',cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',chat:'<path d="M4 20l1.5-4A8 8 0 1 1 8 18.5z"/>',copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'};
+const ic=n=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
+let S,V="dash",F={q:"",s:"all",per:"30",tab:"rec"},CP=0,WA="";
+function seed(){
+ const C=[["Awa Ouédraogo","+226 70 12 34 56","awa@studiokora.bf","Ouaga 2000, Ouagadougou"],["Ibrahim Sawadogo","+226 76 45 89 12","ibrahim@sawadogo-immo.com","Secteur 15, Ouagadougou"],["Fatimata Traoré","+226 65 23 77 40","fatimata.traore@gmail.com","Bobo-Dioulasso"],["Boukary Compaoré","+226 78 90 12 65","b.compaore@faso-tech.bf","Koudougou"],["Agence Wend-Panga","+226 71 33 28 90","contact@wendpanga.bf","Zone du Bois, Ouagadougou"],["Mariam Zongo","+226 72 66 05 18","mariam.zongo@yahoo.fr","Ouahigouya"]].map(([nom,tel,email,adresse])=>({id:uid(),nom,tel,email,adresse}));
+ const pay=[[0,"Logo et charte graphique",250000,-12,[[-40,100000]]],[1,"Site vitrine WordPress",600000,9,[[-35,300000],[-3,100000]]],[2,"Gestion des réseaux sociaux – octobre",150000,-3,[]],[3,"Maquette d’application mobile",450000,16,[[-20,150000]]],[4,"Affiches publicitaires",80000,-60,[[-61,80000]]],[0,"Flyers et cartes de visite",75000,-95,[[-96,75000]]],[1,"Maintenance du site – septembre",100000,-35,[[-33,100000]]],[5,"Montage vidéo promotionnel",120000,-70,[[-68,120000]]],[2,"Gestion des réseaux sociaux – septembre",150000,-30,[[-28,150000]]],[5,"Refonte de la boutique en ligne",800000,5,[]],[3,"Hébergement et nom de domaine",45000,2,[]],[4,"Shooting photo produits",180000,-125,[[-120,180000]]],[1,"Identité visuelle",300000,-150,[[-150,300000]]]].map(([c,service,total,e,h])=>({id:uid(),cid:C[c].id,service,total,echeance:off(e),cr:h.length?off(h[0][0]):off(e-30),hist:h.map(([o,m])=>({id:uid(),d:off(o),m}))}));
+ const log=pay.flatMap(p=>p.hist.map(h=>({id:uid(),d:h.d,t:"Versement de "+money(h.m)+" reçu – "+C.find(c=>c.id==p.cid).nom}))).sort((a,b)=>b.d.localeCompare(a.d));
+ return{clients:C,pay,log}}
+let UID=null,JQ=[],R={clients:new Set(),payments:new Set(),versements:new Set()},Q=Promise.resolve();
+const okr=r=>{if(r.error)throw r.error;return r.data};
+async function loadAll(){
+ const [c,p,v,j,pr]=(await Promise.all(["clients","payments","versements","journal","profiles"].map(t=>db.from(t).select("*")))).map(okr);
+ S={cur:(pr[0]&&pr[0].devise)||"FCFA",
+  clients:c.sort((a,b)=>a.created_at.localeCompare(b.created_at)).map(x=>({id:x.id,nom:x.nom,tel:x.tel||"",email:x.email||"",adresse:x.adresse||""})),
+  pay:p.map(x=>({id:x.id,cid:x.client_id,service:x.service,total:+x.total,echeance:x.echeance,cr:x.created_at,hist:v.filter(h=>h.payment_id==x.id).map(h=>({id:h.id,d:h.date_versement,m:+h.montant})).sort((a,b)=>a.d.localeCompare(b.d))})),
+  log:j.sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,200).map(l=>({id:l.id,d:l.created_at.slice(0,10),t:l.texte}))};
+ JQ=[];R={clients:new Set(c.map(x=>x.id)),payments:new Set(p.map(x=>x.id)),versements:new Set(v.map(x=>x.id))}}
+async function sync(){
+ if(!S)return;
+ const D={clients:S.clients.map(c=>({id:c.id,nom:c.nom,tel:c.tel,email:c.email,adresse:c.adresse})),
+  payments:S.pay.map(p=>({id:p.id,client_id:p.cid,service:p.service,total:p.total,echeance:p.echeance,created_at:p.cr})),
+  versements:S.pay.flatMap(p=>p.hist.map(h=>({id:h.id,payment_id:p.id,montant:h.m,date_versement:h.d})))};
+ for(const t of["versements","payments","clients"]){const ids=new Set(D[t].map(x=>x.id)),gone=[...R[t]].filter(i=>!ids.has(i));if(gone.length)okr(await db.from(t).delete().in("id",gone))}
+ for(const t of["clients","payments","versements"]){if(D[t].length)okr(await db.from(t).upsert(D[t]));R[t]=new Set(D[t].map(x=>x.id))}
+ const b=JQ.splice(0);if(b.length)okr(await db.from("journal").insert(b.map(e=>({id:e.id,texte:e.t}))));
+ okr(await db.from("profiles").upsert({user_id:UID,devise:S.cur||"FCFA"}))}
+function save(){Q=Q.then(sync).catch(e=>{console.error(e);toast("Échec de l’enregistrement en ligne : "+e.message)})}
+function showAuth(m="in"){
+ $("#side").innerHTML="";$("#bot").innerHTML="";
+ $("#main").innerHTML=`<div class="card" style="max-width:400px;margin:30px auto">${logo}<h1 style="font-size:22px">${m=="in"?"Connexion":"Créer un compte"}</h1><p class="mut sm">Suivez vos paiements clients et préparez vos relances. Vos données sont enregistrées en ligne et accessibles depuis tous vos appareils.</p>${fld("a_e","E-mail","","email",'autocomplete="email"')}${fld("a_p","Mot de passe (6 caractères minimum)","","password",'autocomplete="'+(m=="in"?"current-password":"new-password")+'"')}<div id="a_m" class="sm neg" style="margin-bottom:10px"></div><button class="btn pri" style="width:100%;justify-content:center" data-a="auth" data-id="${m}">${m=="in"?"Se connecter":"Créer mon compte"}</button><p class="sm mut" style="text-align:center">${m=="in"?"Pas encore de compte ?":"Déjà un compte ?"} <button class="btn sm" data-a="amode" data-id="${m=="in"?"up":"in"}">${m=="in"?"Créer un compte":"Se connecter"}</button></p></div>`}
+async function start(){
+ $("#main").innerHTML='<p class="mut" style="padding:40px;text-align:center">Chargement de vos données…</p>';
+ try{await loadAll();render()}catch(e){$("#main").innerHTML=`<div class="card" style="max-width:420px;margin:40px auto">Impossible de charger vos données : ${esc(e.message)}<div class="mf"><button class="btn" data-a="reset">Se déconnecter</button><button class="btn pri" onclick="location.reload()">Réessayer</button></div></div>`}}
+async function boot(){const{data}=await db.auth.getSession();if(data.session){UID=data.session.user.id;start()}else showAuth()}
+const paye=p=>sum(p.hist.map(h=>h.m)),solde=p=>Math.max(0,p.total-paye(p));
+const st=p=>solde(p)<=0?"paye":p.echeance<T?"retard":paye(p)>0?"partiel":"attente";
+const LB={paye:"Payé",partiel:"Paiement partiel",attente:"En attente",retard:"En retard"};
+const badge=s=>`<span class="bd ${s}">${LB[s]}</span>`;
+const cl=id=>S.clients.find(c=>c.id==id)||{nom:"Client supprimé"};
+const act=p=>[p.cr,...p.hist.map(h=>h.d)].sort().pop();
+const lg=t=>{const e={id:uid(),d:T,t};S.log.unshift(e);JQ.push(e)};
+const empty='<div class="mut" style="padding:20px 0;text-align:center">Rien à afficher pour le moment.</div>';
+const ph=(t,s,a="")=>`<div class="ph"><div><h1>${t}</h1><div class="mut">${s}</div></div><div class="acts">${a}</div></div>`;
+const fld=(id,l,v,t="text",x="")=>`<label>${l}<input id="${id}" type="${t}" value="${esc(v)}" ${x}></label>`;
+const NAV=[["dash","Tableau de bord","Accueil","home"],["clients","Clients","Clients","users"],["pay","Paiements","Paiements","wallet"],["rel","Relances","Relances","bell"],["hist","Historique","Historique","chart"]];
+const logo='<div class="logo"><div class="lg">'+ic("wallet")+'</div>PayFollow</div>';
+function render(){
+ const nv=i=>NAV.map(n=>`<button class="nv ${V==n[0]?"on":""}" data-a="go" data-id="${n[0]}">${ic(n[3])}${n[i]}</button>`).join("");
+ $("#side").innerHTML=logo+'<div class="tn">'+nv(1)+'</div><div class="tr">'+curSel()+'<button class="btn sm" data-a="reset">Se déconnecter</button></div>';
+ $("#bot").innerHTML=nv(2);
+ $("#main").innerHTML=logo.replace('class="logo"','class="logo mo"')+PG[V]()}
+function chart(){
+ const M=[...Array(6)].map((_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-5+i);const k=d.getFullYear()+"-"+pad(d.getMonth()+1);return{l:d.toLocaleDateString("fr-FR",{month:"short"}),r:sum(S.pay.flatMap(p=>p.hist).filter(h=>h.d.startsWith(k)).map(h=>h.m)),a:sum(S.pay.filter(p=>p.echeance.startsWith(k)).map(p=>p.total))}});
+ const mx=Math.max(1,...M.flatMap(m=>[m.r,m.a])),H=170;
+ const pt=(k,i)=>(40+i*104)+","+(180-M[i][k]/mx*H),L=k=>M.map((m,i)=>pt(k,i)).join(" "),c=M[5].r,pv=M[4].r,g=pv?Math.round((c-pv)/pv*100):0;
+ return `<div class="big">${money(c)}</div><div class="sm ${g>=0?"pos":"neg"}">${g>=0?"▲ +":"▼ "}${g} % vs mois dernier</div><svg viewBox="0 0 600 220" width="100%" role="img" aria-label="Paiements reçus et attendus par mois">${[0,1,2].map(i=>`<line class="gl" x1="0" x2="600" y1="${10+i*H/2}" y2="${10+i*H/2}"/>`).join("")}<polygon class="ar" points="40,180 ${L("r")} 560,180"/><polyline class="l2" points="${L("a")}"/><polyline class="l1" points="${L("r")}"/>${M.map((m,i)=>`<circle class="d1" cx="${40+i*104}" cy="${180-m.r/mx*H}" r="5"><title>Reçu : ${money(m.r)}</title></circle><text class="ax" x="${40+i*104}" y="206" text-anchor="middle">${m.l}</text>`).join("")}</svg><div class="sm"><span style="color:var(--em)">●</span> Reçus &nbsp; <span style="color:var(--mut)">●</span> Attendus (échéances du mois)</div>`}
+function dash(){
+ const A=S.pay,late=A.filter(p=>st(p)=="retard"),soon=A.filter(p=>st(p)!="paye"&&p.echeance>=T&&p.echeance<=off(30)).sort((a,b)=>a.echeance.localeCompare(b.echeance));
+ const cd=[["Total encaissé",money(sum(A.map(paye))),"Argent déjà reçu","check","g"],["Paiements attendus",money(sum(A.map(solde))),"Reste à encaisser","wallet","b"],["Paiements en retard",money(sum(late.map(solde))),late.length+" paiement(s) en retard","alert","r"],["Échéances à venir",soon.length,"dans les 30 prochains jours","cal","a"]];
+ const rec=[...A].sort((a,b)=>act(b).localeCompare(act(a))).slice(0,6);
+ return ph("Tableau de bord","Vue d’ensemble de vos paiements clients",`<div class="sb" style="min-width:200px">${ic("search")}<input id="gs" placeholder="Rechercher…" enterkeyhint="search"></div><button class="btn pri sm" data-a="newc">${ic("plus")} Ajouter un client</button><button class="btn pri sm" data-a="newp">${ic("plus")} Enregistrer un paiement</button>`)+(S.clients.length+A.length?"":`<div class="card" style="margin-bottom:16px;background:var(--soft)"><b>Bienvenue sur PayFollow !</b><div class="sm" style="margin:6px 0 10px">Votre espace est vide. Ajoutez votre premier client, ou chargez des données d’exemple pour explorer l’application.</div><button class="btn pri sm" data-a="demo">Charger des données d’exemple</button></div>`)+`<div class="g4">${cd.map(c=>`<div class="card sc ${c[4]}"><div class="sh"><span class="si ${c[4]}">${ic(c[3])}</span>${c[0]}</div><div class="mut sm">${c[2]}</div><div class="big">${c[1]}</div></div>`).join("")}</div>
+<div class="g2"><div class="col"><div class="card"><h3>Paiements récents</h3><div class="tw"><table><tr><th>Client<th>Montant<th>Échéance<th>Statut</tr>${rec.map(p=>`<tr><td><b>${esc(cl(p.cid).nom)}</b><div class="mut sm">${esc(p.service)}</div><td>${money(p.total)}<td>${fd(p.echeance)}<td>${badge(st(p))}</tr>`).join("")}</table></div></div><div class="card"><h3>Versements récents</h3>${recus().slice(0,5).map(v=>`<div class="row"><div class="grow"><b>${esc(v.c)}</b><div class="mut sm">${esc(v.s)}</div></div><span class="mut sm">${fd(v.d)}</span><b class="pos">+ ${money(v.m)}</b></div>`).join("")||empty}</div></div>
+<div class="col"><div class="card"><div class="ph cc" style="margin:0 0 8px"><h3 style="margin:0">Aperçu des paiements</h3>${curSel()}</div>${chart()}</div>
+<div class="card"><h3>Prochaines échéances</h3>${soon.slice(0,5).map(p=>{const d=new Date(p.echeance+"T00:00:00");return `<div class="row"><div class="dt">${d.getDate()}<div class="sm">${d.toLocaleDateString("fr-FR",{month:"short"})}</div></div><div class="grow"><b>${esc(cl(p.cid).nom)}</b><div class="mut sm">${esc(p.service)}</div></div><b>${money(solde(p))}</b></div>`}).join("")||'<div class="mut">Aucune échéance dans les 30 prochains jours.</div>'}</div></div></div>
+<p class="mo">${curSel()}<button class="btn sm" data-a="reset">Se déconnecter</button></p>`}
+function clientList(){const q=F.q.toLowerCase();return S.clients.filter(c=>(c.nom+c.tel+c.email).toLowerCase().includes(q)).map(c=>{const d=sum(S.pay.filter(p=>p.cid==c.id).map(solde));return `<div class="row"><div class="av">${esc(c.nom[0])}</div><div class="grow"><b>${esc(c.nom)}</b><div class="mut sm">${esc(c.tel)}${c.email?" · "+esc(c.email):""}</div></div><div class="r"><div class="mut sm">Reste à payer</div><b class="${d>0?"neg":"pos"}">${money(d)}</b></div><div class="acts"><button class="btn sm" data-a="hc" data-id="${c.id}">Historique</button><button class="ib" data-a="newc" data-id="${c.id}" aria-label="Modifier">${ic("edit")}</button><button class="ib" data-a="delc" data-id="${c.id}" aria-label="Supprimer">${ic("trash")}</button></div></div>`}).join("")||empty}
+function clients(){return ph("Clients",S.clients.length+" client(s)",`<button class="btn pri" data-a="newc">${ic("plus")} Ajouter un client</button>`)+`<div class="bar"><div class="sb">${ic("search")}<input id="q" placeholder="Rechercher un client…" value="${esc(F.q)}"></div></div><div class="card" id="list">${clientList()}</div>`}
+function payList(){const q=F.q.toLowerCase();return S.pay.filter(p=>(F.s=="all"||st(p)==F.s)&&(cl(p.cid).nom+" "+p.service).toLowerCase().includes(q)).sort((a,b)=>b.echeance.localeCompare(a.echeance)).map(p=>`<div class="row"><div class="grow"><b>${esc(cl(p.cid).nom)}</b><div class="mut sm">${esc(p.service)}</div><div class="mut sm">Convenu ${money(p.total)} · Payé ${money(paye(p))} · Échéance ${fd(p.echeance)}</div></div><div class="r"><div class="mut sm">Solde restant</div><b>${money(solde(p))}</b><div>${badge(st(p))}</div></div><div class="acts">${solde(p)>0?`<button class="btn sm" data-a="vers" data-id="${p.id}">${ic("plus")} Versement</button>`:""}<button class="ib" data-a="newp" data-id="${p.id}" aria-label="Modifier">${ic("edit")}</button><button class="ib" data-a="delp" data-id="${p.id}" aria-label="Supprimer">${ic("trash")}</button></div></div>`).join("")||empty}
+function pay(){return ph("Paiements",S.pay.length+" paiement(s) suivis",`<button class="btn pri" data-a="newp">${ic("plus")} Enregistrer un paiement</button>`)+`<div class="bar"><div class="sb">${ic("search")}<input id="q" placeholder="Rechercher un client ou un service…" value="${esc(F.q)}"></div><select id="fs" aria-label="Filtrer par statut"><option value="all">Tous les statuts</option>${Object.keys(LB).map(s=>`<option value="${s}" ${F.s==s?"selected":""}>${LB[s]}</option>`).join("")}</select></div><div class="card" id="list">${payList()}</div>`}
+function rel(){const L=S.pay.filter(p=>["attente","retard"].includes(st(p))).sort((a,b)=>a.echeance.localeCompare(b.echeance));
+ return ph("Relances","Paiements en attente ou en retard")+`<div class="card" style="margin-bottom:16px;background:var(--soft)"><span class="sm">PayFollow n’envoie rien automatiquement : vous préparez le message, puis vous l’envoyez vous-même.</span></div><div class="card">${L.map(p=>`<div class="row"><div class="grow"><b>${esc(cl(p.cid).nom)}</b><div class="mut sm">${esc(p.service)}</div><div class="mut sm">Solde ${money(solde(p))} · Échéance ${fd(p.echeance)}</div></div>${badge(st(p))}<button class="btn pri sm" data-a="rel" data-id="${p.id}">${ic("bell")} Préparer une relance</button></div>`).join("")||'<div class="mut" style="padding:20px 0;text-align:center">Aucune relance à faire : tout est à jour.</div>'}</div>`}
+const recus=()=>S.pay.flatMap(p=>p.hist.map(h=>({...h,c:cl(p.cid).nom,s:p.service}))).sort((a,b)=>b.d.localeCompare(a.d));
+function histList(){const t=F.tab;
+ if(t=="rec"){const L=recus().filter(v=>F.per=="all"||v.d>=off(-F.per));return `<div class="row"><b>Total sur la période</b><b class="pos acts">${money(sum(L.map(v=>v.m)))}</b></div>`+L.map(v=>`<div class="row"><div class="grow"><b>${esc(v.c)}</b><div class="mut sm">${esc(v.s)} · ${fd(v.d)}</div></div><b class="pos">+ ${money(v.m)}</b></div>`).join("")}
+ if(t=="log")return S.log.slice(0,80).map(l=>`<div class="row"><div class="grow">${esc(l.t)}</div><span class="mut sm">${fd(l.d)}</span></div>`).join("")||empty;
+ return S.pay.filter(p=>st(p)==t).map(p=>`<div class="row"><div class="grow"><b>${esc(cl(p.cid).nom)}</b><div class="mut sm">${esc(p.service)} · Échéance ${fd(p.echeance)}</div></div><b>${money(solde(p))}</b>${badge(t)}</div>`).join("")||empty}
+function hist(){const R=recus(),p=d=>sum(R.filter(v=>v.d>=off(-d)).map(v=>v.m));
+ return ph("Historique et statistiques","Encaissements et opérations")+`<div class="g4">${[7,30,90].map(d=>`<div class="card"><div class="mut sm">Encaissé sur ${d} jours</div><div class="big">${money(p(d))}</div></div>`).join("")}</div><div class="seg">${[["rec","Reçus"],["attente","En attente"],["retard","En retard"],["log","Journal"]].map(t=>`<button class="btn sm ${F.tab==t[0]?"on":""}" data-a="tab" data-id="${t[0]}">${t[1]}</button>`).join("")}</div>${F.tab=="rec"?`<div class="bar"><select id="fp" aria-label="Période">${[["7","7 jours"],["30","30 jours"],["90","90 jours"],["all","Tout"]].map(o=>`<option value="${o[0]}" ${F.per==o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></div>`:""}<div class="card" id="list">${histList()}</div>`}
+const PG={dash,clients,pay,rel,hist},LS={clients:clientList,pay:payList,hist:histList};
+function modal(h){$("#modal").innerHTML=`<div class="ov"><div class="md" role="dialog" aria-modal="true">${h}</div></div>`}
+function close(){$("#modal").innerHTML=""}
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),2200)}
+function done(m){save();close();render();toast(m)}
+function cm(msg,a,id,lab="Supprimer"){modal(`<h3>Confirmation</h3><p>${msg}</p><div class="mf"><button class="btn" data-a="close">Annuler</button><button class="btn pri" style="background:var(--red);border-color:var(--red)" data-a="${a}" data-id="${id||""}">${lab}</button></div>`)}
+function act2(a,id){
+ const P=S&&S.pay.find(p=>p.id==id);
+ ({async auth(){const e=$("#a_e").value.trim(),p=$("#a_p").value,m=$("#a_m");m.textContent="";
+  if(!e||p.length<6){m.textContent="Saisissez un e-mail et un mot de passe de 6 caractères minimum.";return}
+  const r=id=="up"?await db.auth.signUp({email:e,password:p}):await db.auth.signInWithPassword({email:e,password:p});
+  if(r.error){m.textContent=r.error.message=="Invalid login credentials"?"E-mail ou mot de passe incorrect.":r.error.message;return}
+  if(!r.data.session){m.textContent="Compte créé. Confirmez votre adresse e-mail (pensez aux spams), puis connectez-vous.";return}
+  UID=r.data.user.id;start()},amode(){showAuth(id)},go(){V=id;F={q:"",s:"all",per:"30",tab:"rec"};render();scrollTo(0,0)},tab(){F.tab=id;render()},close,
+ newc(){const c=S.clients.find(x=>x.id==id)||{};modal(`<h3>${id?"Modifier le client":"Nouveau client"}</h3>${fld("f_nom","Nom complet",c.nom)}${fld("f_tel","Téléphone (WhatsApp)",c.tel,"tel",'placeholder="+226 70 00 00 00"')}${fld("f_email","E-mail",c.email,"email")}${fld("f_adr","Adresse",c.adresse)}<div class="mf"><button class="btn" data-a="close">Annuler</button><button class="btn pri" data-a="savec" data-id="${id||""}">Enregistrer</button></div>`)},
+ savec(){const nom=$("#f_nom").value.trim();if(!nom)return toast("Le nom est obligatoire");const d={nom,tel:$("#f_tel").value.trim(),email:$("#f_email").value.trim(),adresse:$("#f_adr").value.trim()};
+  if(id)Object.assign(S.clients.find(c=>c.id==id),d);else S.clients.push({id:uid(),...d});lg((id?"Client modifié – ":"Client ajouté – ")+nom);done("Client enregistré")},
+ delc(){const n=S.pay.filter(p=>p.cid==id).length;cm("Supprimer "+esc(cl(id).nom)+" ?"+(n?" Ses "+n+" paiement(s) seront aussi supprimés.":""),"okdelc",id)},
+ okdelc(){lg("Client supprimé – "+cl(id).nom);S.clients=S.clients.filter(c=>c.id!=id);S.pay=S.pay.filter(p=>p.cid!=id);done("Client supprimé")},
+ hc(){const c=cl(id),L=S.pay.filter(p=>p.cid==id);modal(`<h3>Historique – ${esc(c.nom)}</h3><div class="mut">Reste à payer : <b>${money(sum(L.map(solde)))}</b></div>${L.map(p=>`<div class="row"><div class="grow"><b>${esc(p.service)}</b><div class="mut sm">Convenu ${money(p.total)} · Payé ${money(paye(p))} · Échéance ${fd(p.echeance)}</div>${p.hist.map(h=>`<div class="sm pos">+ ${money(h.m)} le ${fd(h.d)}</div>`).join("")}</div>${badge(st(p))}</div>`).join("")||empty}<div class="mf"><button class="btn" data-a="close">Fermer</button></div>`)},
+ newp(){if(!S.clients.length)return modal(`<h3>Aucun client</h3><p class="mut">Ajoutez d’abord un client pour enregistrer un paiement.</p><div class="mf"><button class="btn pri" data-a="newc">Ajouter un client</button></div>`);
+  const pd=P?paye(P):0;CP=pd;modal(`<h3>${P?"Modifier le paiement":"Nouveau paiement"}</h3><label>Client<select id="f_c">${S.clients.map(c=>`<option value="${c.id}" ${P&&P.cid==c.id?"selected":""}>${esc(c.nom)}</option>`).join("")}</select></label>${fld("f_s","Service fourni",P?.service)}${fld("f_t","Montant total convenu ("+cu()+")",P?.total,"number",'min="0" inputmode="numeric"')}${P?`<div class="mut sm" style="margin-bottom:12px">Déjà payé : <b>${money(pd)}</b>. Ajoutez des paiements avec « Versement ».</div>`:fld("f_p","Montant déjà payé ("+cu()+")",0,"number",'min="0" inputmode="numeric"')}${fld("f_e","Date prévue du paiement",P?.echeance||off(14),"date")}<div class="card" style="margin-bottom:12px;padding:12px">Solde restant : <b id="f_sol">${money(P?P.total-pd:0)}</b><div class="mut sm">Le statut se met à jour automatiquement.</div></div><div class="mf"><button class="btn" data-a="close">Annuler</button><button class="btn pri" data-a="savep" data-id="${id||""}">Enregistrer</button></div>`)},
+ savep(){const cid=$("#f_c").value,service=$("#f_s").value.trim(),total=+$("#f_t").value,echeance=$("#f_e").value,pd=$("#f_p")?+$("#f_p").value||0:CP;
+  if(!service||!(total>0)||!echeance)return toast("Complétez le service, le montant et la date");
+  if(pd<0||pd>total)return toast("Le montant payé doit être compris entre 0 et le total");
+  if(P){Object.assign(P,{cid,service,total,echeance});lg("Paiement modifié – "+service)}
+  else{S.pay.push({id:uid(),cid,service,total,echeance,cr:T,hist:pd>0?[{id:uid(),d:T,m:pd}]:[]});lg("Paiement créé – "+service+" ("+money(total)+")");if(pd>0)lg("Versement de "+money(pd)+" reçu – "+cl(cid).nom)}
+  done("Paiement enregistré")},
+ vers(){modal(`<h3>Enregistrer un versement</h3><div class="mut" style="margin-bottom:12px">${esc(cl(P.cid).nom)} · ${esc(P.service)}<br>Solde restant : <b>${money(solde(P))}</b></div>${fld("f_m","Montant reçu ("+cu()+")",solde(P),"number",'min="0" inputmode="numeric"')}${fld("f_d","Date de réception",T,"date")}<div class="mf"><button class="btn" data-a="close">Annuler</button><button class="btn pri" data-a="savev" data-id="${id}">Valider le versement</button></div>`)},
+ savev(){const m=+$("#f_m").value;if(!(m>0))return toast("Saisissez un montant");if(m>solde(P))return toast("Le montant dépasse le solde restant");P.hist.push({id:uid(),d:$("#f_d").value||T,m});lg("Versement de "+money(m)+" reçu – "+cl(P.cid).nom);done("Versement enregistré")},
+ delp(){cm("Supprimer ce paiement et son historique ?","okdelp",id)},
+ okdelp(){lg("Paiement supprimé – "+P.service);S.pay=S.pay.filter(p=>p.id!=id);done("Paiement supprimé")},
+ rel(){const c=cl(P.cid),m=`Bonjour ${c.nom}, j’espère que vous allez bien. Je vous contacte au sujet du paiement de ${num(solde(P))} ${cu()} prévu le ${fd(P.echeance)}. Pourriez-vous me confirmer quand le règlement pourra être effectué ? Merci pour votre retour.`;WA=c.tel||"";
+  modal(`<h3>Relance – ${esc(c.nom)}</h3><p class="mut sm">Message généré automatiquement. Modifiez-le, puis copiez-le ou ouvrez WhatsApp. Rien n’est envoyé automatiquement.</p><textarea id="rm" rows="8">${esc(m)}</textarea><div class="mf" style="margin-top:12px"><button class="btn" data-a="close">Fermer</button><button class="btn" data-a="copy">${ic("copy")} Copier</button><button class="btn pri" data-a="wa" ${c.tel?"":"disabled"}>${ic("chat")} WhatsApp</button></div>${c.tel?"":'<div class="mut sm">Aucun numéro enregistré pour ce client.</div>'}`);lg("Relance préparée – "+c.nom);save()},
+ copy(){const t=$("#rm");t.select();let ok=false;try{ok=document.execCommand("copy")}catch(e){}if(!ok&&navigator.clipboard)navigator.clipboard.writeText(t.value);toast("Message copié")},
+ wa(){let n=WA.replace(/\D/g,"");if(n.length==8)n="226"+n;window.open("https://wa.me/"+n+"?text="+encodeURIComponent($("#rm").value),"_blank","noopener")},
+ reset(){db.auth.signOut().then(()=>{S=null;V="dash";UID=null;showAuth()})},
+ demo(){const c=S.cur;S=seed();S.cur=c;JQ=S.log.slice();done("Données d’exemple ajoutées")}})[a]?.()}
+document.addEventListener("click",e=>{if(e.target.classList.contains("ov"))return close();const t=e.target.closest("[data-a]");if(t&&!t.disabled)act2(t.dataset.a,t.dataset.id)});
+document.addEventListener("input",e=>{const i=e.target.id;
+ if(i=="q"||i=="fs"||i=="fp"){F[i=="q"?"q":i=="fs"?"s":"per"]=e.target.value;$("#list").innerHTML=LS[V]()}
+ if(i=="fc"){S.cur=e.target.value;save();render()}
+ if(i=="f_t"||i=="f_p"){const pd=$("#f_p")?+$("#f_p").value||0:CP;$("#f_sol").textContent=money(Math.max(0,(+$("#f_t").value||0)-pd))}});
+document.addEventListener("keydown",e=>{if(e.key=="Escape")close();if(e.key=="Enter"&&/^a_[ep]$/.test(e.target.id))$("[data-a=auth]").click();if(e.key=="Enter"&&e.target.id=="gs"){V="pay";F={q:e.target.value,s:"all",per:"30",tab:"rec"};render();scrollTo(0,0)}});
+boot();
+</script></body></html>
