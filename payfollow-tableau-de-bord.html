@@ -307,7 +307,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   }
   function go(name){
     if (name === view) return;
-    if (name === "clients"){ window.location.href = "payfollow-clients.html"; return; }
+    if (name === "clients" || name === "paiements"){ window.location.href = "payfollow-" + name + ".html"; return; }
     var from = $(view === "home" ? "v-home" : "v-soon"), to = $(name === "home" ? "v-home" : "v-soon");
     view = name;
     document.querySelectorAll("[data-view]").forEach(function(b){ b.setAttribute("aria-current", b.dataset.view === name ? "page" : "false"); });
