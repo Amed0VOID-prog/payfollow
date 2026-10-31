@@ -155,6 +155,18 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   .toast{bottom:32px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* Menu : stable d'une page à l'autre */
+*{-webkit-tap-highlight-color:transparent}
+.tabs>*,.new{white-space:nowrap}
+.ind{transition:none}
+.ind.ready{transition:transform .4s cubic-bezier(.3,.8,.25,1),width .4s cubic-bezier(.3,.8,.25,1),opacity .2s}
+@media (min-width:900px) and (max-width:1120px){.tabs>*{padding:10px 11px;font-size:14px}.new{padding:10px 14px;font-size:14px}.pill{gap:8px}.tabs{margin:0 4px}}
+@view-transition{navigation:auto}
+.nav{view-transition-name:nav}
+.tb{view-transition-name:tb}
+::view-transition-old(nav),::view-transition-old(tb){display:none}
+::view-transition-new(nav),::view-transition-new(tb){animation:none}
 </style>
 </head>
 <body>
@@ -333,7 +345,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   function mark(){ menu.querySelectorAll("[data-cur]").forEach(function(b){ b.setAttribute("aria-checked", b.dataset.cur===cur?"true":"false"); }); }
   menu.addEventListener("click", function(e){ var b = e.target.closest("[data-cur]"); if (!b) return; cur = b.dataset.cur; try { localStorage.setItem("pf_devise", cur); } catch(x){} mark(); renderAll(false); toggle(false); });
 
-  mark(); renderAll(true); setTimeout(moveInd, 60);
+  mark(); renderAll(true); moveInd(); requestAnimationFrame(function(){ ind.classList.add("ready"); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveInd);
 })();
 </script>
