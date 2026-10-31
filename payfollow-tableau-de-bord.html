@@ -153,6 +153,11 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 .tb{view-transition-name:tb}
 ::view-transition-old(nav),::view-transition-old(tb){display:none}
 ::view-transition-new(nav),::view-transition-new(tb){animation:none}
+
+/* Onglets : même hauteur, texte centré, identiques que ce soit un lien ou un bouton */
+.tabs{align-items:center;height:42px}
+.tabs>*{display:flex;align-items:center;justify-content:center;height:42px;padding-top:0;padding-bottom:0;line-height:1;text-decoration:none;box-sizing:border-box;margin:0}
+.tb>*{align-content:center;align-items:center;justify-content:center;line-height:1.2;text-decoration:none}
 </style>
 </head>
 <body>
