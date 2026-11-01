@@ -325,7 +325,8 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   }
   function go(name){
     if (name === view) return;
-    if (name === "clients" || name === "paiements" || name === "relances"){ window.location.href = "payfollow-" + name + ".html"; return; }
+    if (name === "plus") name = "exports";
+    if (name === "clients" || name === "paiements" || name === "relances" || name === "exports"){ window.location.href = "payfollow-" + name + ".html"; return; }
     var from = $(view === "home" ? "v-home" : "v-soon"), to = $(name === "home" ? "v-home" : "v-soon");
     view = name;
     document.querySelectorAll("[data-view]").forEach(function(b){ b.setAttribute("aria-current", b.dataset.view === name ? "page" : "false"); });
