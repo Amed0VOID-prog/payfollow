@@ -235,7 +235,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 </header>
 
 <main>
-  <div class="top rv"><div><h1>Exports</h1><p>Téléchargez vos données en CSV, lisible dans Excel et Google Sheets.</p></div></div>
+  <div class="top rv"><div><h1>Exports</h1><p>Téléchargez vos données dans un fichier Excel, lisible aussi dans Google Sheets.</p></div></div>
   <div class="sum rv" style="--i:1">Les exports Clients et Relances font partie du pack Pro. Ils sont offerts pendant votre essai gratuit.</div>
   <p class="pl2 rv" style="--i:2">Période</p>
   <div class="chips rv" id="chips" style="--i:2;margin-bottom:16px"></div>
@@ -251,6 +251,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 </nav>
 
 <div class="toast" id="toast" role="status"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 (function(){
   var CUR={EUR:{s:"€",d:2},XOF:{s:"FCFA",d:0},USD:{s:"$",d:2}},cur="EUR";
@@ -278,7 +279,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   function inR(d){var n=new Date();if(per==="all")return true;
     if(per==="m")return d.slice(0,7)===iso(n).slice(0,7);
     var b=new Date(n.getFullYear(),n.getMonth()-3,n.getDate());return d>=iso(b);}
-  function nb(x){return String(Math.round(x*100)/100).replace(".",",");}
+  var NUM=false;function nb(x){x=Math.round(x*100)/100;return NUM?x:String(x).replace(".",",");}
   function data(k){
     if(k==="pay")return P.filter(function(p){return inR(p.d);});
     if(k==="rel")return R.filter(function(r){return inR(r.d);});
@@ -290,8 +291,10 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     if(k==="cli")return [["Client","Nombre de paiements","Total facturé","Total reçu","Reste à recevoir","Paiements en retard","Devise"]].concat(D.map(function(c){return [c.c,c.n,nb(c.t),nb(c.g),nb(c.t-c.g),c.late,d];}));
     return [["Client","Description","Reste dû","Date de la relance","Niveau","Devise"]].concat(D.map(function(r){return [r.c,r.l,nb(r.r),r.d,r.n,d];}));
   }
-  function csv(a){return "\ufeff"+a.map(function(r){return r.map(function(v){v=String(v);return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(";");}).join("\r\n");}
-  function dl(name,text){var b=new Blob([text],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);}
+  function csv(a){return a.map(function(r){return r.map(function(v){v=String(v);return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(";");}).join("\r\n");}
+  var W={8364:128,8218:130,402:131,8222:132,8230:133,8224:134,8225:135,710:136,8240:137,352:138,8249:139,338:140,381:142,8216:145,8217:146,8220:147,8221:148,8226:149,8211:150,8212:151,732:152,8482:153,353:154,8250:155,339:156,382:158,376:159};
+  function ansi(t){var o=new Uint8Array(t.length),n=0;for(var i=0;i<t.length;i++){var c=t.charCodeAt(i);o[n++]=c<256?c:(W[c]||63);}return o.slice(0,n);}
+  function dl(name,text){var b=new Blob([ansi(text)],{type:"text/csv;charset=windows-1252"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);}
   var tt;function toast(m){var t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){t.classList.remove("on");},2400);}
   var IC={pay:'<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/>',cli:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-5.5 6.5-5.5s6.5 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .6 3.5 2.2 3.5 5.2"/>',rel:'<path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7"/><path d="M10 20a2 2 0 0 0 4 0"/>'};
   var EX=[{k:"pay",t:"Paiements",s:"Client, montant, reçu, reste, date et statut",u:["paiement","paiements"]},
@@ -306,7 +309,10 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   }
   $("chips").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;per=b.dataset.p;render();});
   $("list").addEventListener("click",function(e){var b=e.target.closest(".rb");if(!b||b.disabled)return;var k=b.dataset.k;
-    dl("payfollow-"+({pay:"paiements",cli:"clients",rel:"relances"})[k]+"-"+iso(new Date())+".csv",csv(rows(k)));toast("Fichier prêt");});
+    var x=!!window.XLSX,nm="payfollow-"+({pay:"paiements",cli:"clients",rel:"relances"})[k]+"-"+iso(new Date());NUM=x;var T=rows(k);
+    if(x){var ws=XLSX.utils.aoa_to_sheet(T);ws["!cols"]=T[0].map(function(h){return {wch:Math.max(14,String(h).length+2)};});var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,({pay:"Paiements",cli:"Clients",rel:"Relances"})[k]);XLSX.writeFile(wb,nm+".xlsx");}
+    else dl(nm+".csv",csv(T));
+    toast("Fichier prêt");});
   document.querySelectorAll("[data-soon]").forEach(function(b){b.onclick=function(){toast("Cette page sera construite à la prochaine étape");};});
   var ind=$("ind");
   function moveInd(){var b=document.querySelector('#tabs [aria-current="page"]');if(!b||!b.offsetWidth){ind.style.opacity=0;return;}ind.style.opacity=1;ind.style.width=b.offsetWidth+"px";ind.style.transform="translateX("+b.offsetLeft+"px)";}
