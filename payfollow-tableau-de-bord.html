@@ -111,7 +111,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 .soon h2{font-size:22px;margin:10px 0 0} .soon p{margin:0;color:var(--mut);max-width:34ch}
 
 /* Barre du bas (mobile) */
-.tb{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 6px calc(8px + env(safe-area-inset-bottom,0px));z-index:10}
+.tb{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px calc(8px + env(safe-area-inset-bottom,0px));z-index:10}
 .tb button{position:relative;border:0;background:none;display:grid;justify-items:center;gap:2px;font-size:12px;font-weight:600;color:var(--mut);padding:6px 4px;transition:color .2s}
 .tb button[aria-current="page"]{color:var(--g)}
 .tb button[aria-current="page"]::before{content:"";position:absolute;top:-9px;width:26px;height:3px;border-radius:0 0 4px 4px;background:var(--g);animation:pop .25s ease both}
@@ -226,6 +226,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   <button data-view="home" aria-current="page"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</button>
   <button data-view="clients"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-5.5 6.5-5.5s6.5 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .6 3.5 2.2 3.5 5.2"/></svg>Clients</button>
   <button data-view="paiements"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/></svg>Paiements</button>
+  <button data-view="relances"><svg class="ic" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Relances</button>
   <button data-view="plus"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>Plus</button>
 </nav>
 
@@ -324,7 +325,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   }
   function go(name){
     if (name === view) return;
-    if (name === "clients" || name === "paiements"){ window.location.href = "payfollow-" + name + ".html"; return; }
+    if (name === "clients" || name === "paiements" || name === "relances"){ window.location.href = "payfollow-" + name + ".html"; return; }
     var from = $(view === "home" ? "v-home" : "v-soon"), to = $(name === "home" ? "v-home" : "v-soon");
     view = name;
     document.querySelectorAll("[data-view]").forEach(function(b){ b.setAttribute("aria-current", b.dataset.view === name ? "page" : "false"); });
@@ -364,6 +365,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
     mark(); renderKpis(false); renderChart(); renderAge(false); renderLists(); toggle(false);
   });
 
+  document.addEventListener("click", function(e){ var b = e.target.closest(".rb"); if (b){ window.location.href = "payfollow-relances.html#" + encodeURIComponent(b.closest("li").querySelector("b").textContent); } });
   mark(); renderAll(true);
   moveInd(); requestAnimationFrame(function(){ ind.classList.add("ready"); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveInd);
