@@ -158,9 +158,34 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 .tabs{align-items:center;height:42px}
 .tabs>*{display:flex;align-items:center;justify-content:center;height:42px;padding-top:0;padding-bottom:0;line-height:1;text-decoration:none;box-sizing:border-box;margin:0}
 .tb>*{align-content:center;align-items:center;justify-content:center;line-height:1.2;text-decoration:none}
+.dt{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
+.dq{grid-column:1/-1;position:relative;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(16,25,58,.05),0 8px 22px rgba(16,25,58,.05);color:var(--mut)}
+.dq input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:16px;color:var(--navy);-webkit-appearance:none}
+.dq:focus-within{box-shadow:0 0 0 3px rgba(31,122,61,.25)}
+.dr2{position:absolute;left:0;right:0;top:54px;z-index:20;list-style:none;margin:0;padding:6px;background:#fff;border-radius:16px;box-shadow:0 16px 38px rgba(16,25,58,.16)}
+.dr2[hidden]{display:none}.dr2 a{display:flex;justify-content:space-between;gap:10px;padding:11px 12px;border-radius:10px;color:var(--navy);text-decoration:none;font-size:15px}
+.dr2 a:hover{background:var(--gp)}.dr2 span{color:var(--mut);font-size:13px}
+.b1,.b2{display:grid;place-items:center;height:44px;border-radius:99px;font-weight:700;font-size:13px;padding:0 6px;text-decoration:none;white-space:nowrap}
+.b1{border:1.5px solid var(--g);color:var(--g);background:#fff}.b2{background:var(--g);color:#fff}
+@media (min-width:900px){.dt{grid-template-columns:minmax(0,1fr) auto auto}.dq{grid-column:auto}.b1,.b2{padding:0 22px}}
+
+.menu{display:none!important}.avt,.av{display:grid;place-items:center;text-decoration:none}
+@media (max-width:899px){.top{flex-direction:column;align-items:stretch;gap:12px}.top .add{width:100%;padding:13px 18px;font-size:15px}}
+.pov{position:fixed;inset:0;z-index:55}.pov[hidden],.ps[hidden]{display:none}
+.ps{position:fixed;right:10px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:60;width:232px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:8px;box-shadow:0 16px 38px rgba(16,25,58,.16)}
+.ps a{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;color:var(--navy);text-decoration:none;font-weight:600;font-size:15px}
+.ps a[aria-current]{background:var(--gp);color:var(--gd)}
+@media (min-width:900px){.ps,.pov{display:none!important}}
+.cpick{background:#fff;border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(16,25,58,.05),0 10px 26px rgba(16,25,58,.05)}
+.cpick h2{margin:0;font-size:16px}.cpick .sub{margin:2px 0 12px}
+.cpick .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cpick button{white-space:nowrap;font-size:14px!important;display:flex;justify-content:space-between;align-items:center;gap:8px;border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:13px 14px;font-size:15px;font-weight:600;color:var(--navy)}
+.cpick button b{color:var(--mut)}
+.cpick button[aria-checked="true"]{border-color:var(--g);background:var(--gp);color:var(--gd)}
+.cpick button[aria-checked="true"] b{color:var(--gd)}
 </style>
 </head>
-<body>
+<body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="lg" viewBox="0 0 40 40"><path d="M8 11.5 25 6.5l2.2 5.3H8z" fill="currentColor" opacity=".7" transform="rotate(-8 8 11)"/><rect x="4" y="12" width="32" height="23" rx="5" fill="currentColor"/><rect x="22" y="19" width="14" height="9" rx="4.5" fill="var(--cl)"/><circle cx="27" cy="23.5" r="1.8" fill="currentColor"/></symbol>
 </svg>
@@ -170,18 +195,13 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
     <div class="brand"><svg class="lg"><use href="#lg"/></svg><span>Pay<b>Follow</b></span></div>
     <nav class="tabs" id="tabs" aria-label="Navigation principale">
       <i class="ind" id="ind"></i>
-      <button data-view="home" aria-current="page">Tableau de bord</button><button data-view="clients">Clients</button><button data-view="paiements">Paiements</button><button data-view="relances">Relances</button><button data-view="exports">Exports</button>
+      <button data-view="home" aria-current="page">Tableau de bord</button><button data-view="clients">Clients</button><button data-view="paiements">Paiements</button><button data-view="relances">Relances</button><button data-view="historique">Historique</button><button data-view="exports">Exports</button>
     </nav>
     <div style="display:flex;align-items:center;gap:10px">
-      <button class="new">+ Nouveau paiement</button>
+      
       <div class="me">
-        <button class="av" id="avatar" aria-haspopup="true" aria-expanded="false" aria-label="Mon compte">A</button>
-        <div class="menu" id="menu" hidden>
-          <h3>Devise de mon compte</h3>
-          <button role="menuitemradio" data-cur="EUR" aria-checked="true">Euro (€)</button>
-          <button role="menuitemradio" data-cur="XOF" aria-checked="false">Franc CFA (FCFA)</button>
-          <button role="menuitemradio" data-cur="USD" aria-checked="false">Dollar ($)</button>
-        </div>
+        <a class="av" id="avatar" href="payfollow-profil.html" aria-label="Mon profil">A</a>
+        <div class="menu" id="menu" hidden></div>
       </div>
     </div>
   </div>
@@ -190,6 +210,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 <main>
   <section class="view" id="v-home">
     <div class="hello rv"><h1>Bonjour Amed</h1><p>Voici où en sont vos paiements.</p></div>
+    <div class="dt rv" style="--i:1"><label class="dq"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="gq" type="search" placeholder="Rechercher un client…" autocomplete="off" aria-label="Rechercher un client"><ul class="dr2" id="gres" hidden></ul></label><a class="b1" href="payfollow-clients.html?new=1">+ Ajouter un client</a><a class="b2" href="payfollow-paiements.html?new=1">+ Ajouter un paiement</a></div>
     <div class="grid kpis" id="kpis"></div>
     <div class="grid two">
       <section class="card rv" style="--i:5" aria-labelledby="h-enc">
@@ -227,12 +248,12 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   <button data-view="clients"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-5.5 6.5-5.5s6.5 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .6 3.5 2.2 3.5 5.2"/></svg>Clients</button>
   <button data-view="paiements"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/></svg>Paiements</button>
   <button data-view="relances"><svg class="ic" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Relances</button>
-  <button data-view="plus"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>Plus</button>
+  <button data-view="plus" data-plus><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>Plus</button>
 </nav>
 
 <script>
 (function(){
-  var CUR = { EUR:{s:"€",d:2}, XOF:{s:"FCFA",d:0}, USD:{s:"$",d:2} };
+  var CUR = { EUR:{s:"€",d:2}, XOF:{s:"FCFA",d:0} };
   var cur = "EUR", period = 6, view = "home";
   var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   try { var sv = localStorage.getItem("pf_devise"); if (sv && CUR[sv]) cur = sv; } catch(e){}
@@ -325,8 +346,8 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   }
   function go(name){
     if (name === view) return;
-    if (name === "plus") name = "exports";
-    if (name === "clients" || name === "paiements" || name === "relances" || name === "exports"){ window.location.href = "payfollow-" + name + ".html"; return; }
+    if (name === "plus") return;
+    if (name === "clients" || name === "paiements" || name === "relances" || name === "exports" || name === "historique"){ window.location.href = "payfollow-" + name + ".html"; return; }
     var from = $(view === "home" ? "v-home" : "v-soon"), to = $(name === "home" ? "v-home" : "v-soon");
     view = name;
     document.querySelectorAll("[data-view]").forEach(function(b){ b.setAttribute("aria-current", b.dataset.view === name ? "page" : "false"); });
@@ -372,5 +393,11 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveInd);
 })();
 </script>
-</body>
+<script>(function(){var C=["Agence Nafa","Atelier Sahel","Boutique Lumière","Café Zaka","Kandé Conseil","Maison Bissa","Studio Kora","Studio Okapi"],i=document.getElementById("gq"),r=document.getElementById("gres");
+function n(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
+function e(s){return s.replace(/[&<>"]/g,function(c){return"&#"+c.charCodeAt(0)+";"})}
+i.addEventListener("input",function(){var v=i.value.trim();if(!v){r.hidden=true;return}var m=C.filter(function(c){return n(c).indexOf(n(v))>-1}).slice(0,5);
+r.innerHTML=m.map(function(c){return'<li><a href="payfollow-clients.html?q='+encodeURIComponent(c)+'">'+c+'<span>Client</span></a></li>'}).join("")+'<li><a href="payfollow-paiements.html?q='+encodeURIComponent(v)+'">Chercher « '+e(v)+' » dans les paiements</a></li>';r.hidden=false});
+i.addEventListener("keydown",function(k){if(k.key==="Enter"){var a=r.querySelector("a");if(a)location.href=a.href}});
+document.addEventListener("click",function(k){if(!r.contains(k.target)&&k.target!==i)r.hidden=true})})();</script><div class="pov" id="pov" hidden></div><div class="ps" id="ps" hidden><a href="payfollow-historique.html"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Historique</a><a href="payfollow-exports.html"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>Exports</a><a href="payfollow-profil.html"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>Mon profil</a></div><script>(function(){var b=document.querySelector("[data-plus]"),s=document.getElementById("ps"),o=document.getElementById("pov");if(!b)return;function t(x){s.hidden=o.hidden=!x}b.addEventListener("click",function(e){e.preventDefault();t(s.hidden)});o.addEventListener("click",function(){t(false)})})();</script></body>
 </html>

@@ -182,9 +182,24 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 .tabs{align-items:center;height:42px}
 .tabs>*{display:flex;align-items:center;justify-content:center;height:42px;padding-top:0;padding-bottom:0;line-height:1;text-decoration:none;box-sizing:border-box;margin:0}
 .tb>*{align-content:center;align-items:center;justify-content:center;line-height:1.2;text-decoration:none}
+
+.menu{display:none!important}.avt,.av{display:grid;place-items:center;text-decoration:none}
+@media (max-width:899px){.top{flex-direction:column;align-items:stretch;gap:12px}.top .add{width:100%;padding:13px 18px;font-size:15px}}
+.pov{position:fixed;inset:0;z-index:55}.pov[hidden],.ps[hidden]{display:none}
+.ps{position:fixed;right:10px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:60;width:232px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:8px;box-shadow:0 16px 38px rgba(16,25,58,.16)}
+.ps a{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;color:var(--navy);text-decoration:none;font-weight:600;font-size:15px}
+.ps a[aria-current]{background:var(--gp);color:var(--gd)}
+@media (min-width:900px){.ps,.pov{display:none!important}}
+.cpick{background:#fff;border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(16,25,58,.05),0 10px 26px rgba(16,25,58,.05)}
+.cpick h2{margin:0;font-size:16px}.cpick .sub{margin:2px 0 12px}
+.cpick .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cpick button{white-space:nowrap;font-size:14px!important;display:flex;justify-content:space-between;align-items:center;gap:8px;border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:13px 14px;font-size:15px;font-weight:600;color:var(--navy)}
+.cpick button b{color:var(--mut)}
+.cpick button[aria-checked="true"]{border-color:var(--g);background:var(--gp);color:var(--gd)}
+.cpick button[aria-checked="true"] b{color:var(--gd)}
 </style>
 </head>
-<body>
+<body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="lg" viewBox="0 0 40 40"><path d="M8 11.5 25 6.5l2.2 5.3H8z" fill="currentColor" opacity=".7" transform="rotate(-8 8 11)"/><rect x="4" y="12" width="32" height="23" rx="5" fill="currentColor"/><rect x="22" y="19" width="14" height="9" rx="4.5" fill="var(--cl)"/><circle cx="27" cy="23.5" r="1.8" fill="currentColor"/></symbol>
 </svg>
@@ -194,25 +209,20 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     <div class="brand"><svg class="lg"><use href="#lg"/></svg><span>Pay<b>Follow</b></span></div>
     <nav class="tabs" id="tabs" aria-label="Navigation principale">
       <i class="ind" id="ind"></i>
-      <a href="payfollow-tableau-de-bord.html">Tableau de bord</a><a href="payfollow-clients.html">Clients</a><button aria-current="page">Paiements</button><a href="payfollow-relances.html">Relances</a><a href="payfollow-exports.html">Exports</a>
+      <a href="payfollow-tableau-de-bord.html">Tableau de bord</a><a href="payfollow-clients.html">Clients</a><button aria-current="page">Paiements</button><a href="payfollow-relances.html">Relances</a><a href="payfollow-historique.html">Historique</a><a href="payfollow-exports.html">Exports</a>
     </nav>
     <div style="display:flex;align-items:center;gap:10px">
-      <button class="new" id="newTop">+ Nouveau paiement</button>
+      
       <div class="me">
-        <button class="avt" id="avatar" aria-haspopup="true" aria-expanded="false" aria-label="Mon compte">A</button>
-        <div class="menu" id="menu" hidden>
-          <h3>Devise de mon compte</h3>
-          <button role="menuitemradio" data-cur="EUR" aria-checked="true">Euro (€)</button>
-          <button role="menuitemradio" data-cur="XOF" aria-checked="false">Franc CFA (FCFA)</button>
-          <button role="menuitemradio" data-cur="USD" aria-checked="false">Dollar ($)</button>
-        </div>
+        <a class="avt" id="avatar" href="payfollow-profil.html" aria-label="Mon profil">A</a>
+        <div class="menu" id="menu" hidden></div>
       </div>
     </div>
   </div>
 </header>
 
 <main>
-  <div class="top rv"><div><h1>Paiements</h1><p>Tout ce qui a été payé, et tout ce qui reste à recevoir.</p></div><button class="add" id="addBtn">+ Nouveau paiement</button></div>
+  <div class="top rv"><div><h1>Paiements</h1><p>Ce qui est payé, et ce qui reste.</p></div><button class="add" id="addBtn">+ Nouveau paiement</button></div>
   <section class="stats" id="stats"></section>
   <div class="tools rv" style="--i:5">
     <label class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Rechercher un client ou un paiement" aria-label="Rechercher un paiement"></label>
@@ -227,7 +237,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   <a href="payfollow-clients.html"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-5.5 6.5-5.5s6.5 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .6 3.5 2.2 3.5 5.2"/></svg>Clients</a>
   <button aria-current="page"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/></svg>Paiements</button>
   <a href="payfollow-relances.html"><svg class="ic" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Relances</a>
-  <a href="payfollow-exports.html"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>Plus</a>
+  <a href="#plus" data-plus role="button"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>Plus</a>
 </nav>
 
 <div class="ov" id="ov" hidden></div>
@@ -236,7 +246,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 
 <script>
 (function(){
-  var CUR = { EUR:{s:"€",d:2}, XOF:{s:"FCFA",d:0}, USD:{s:"$",d:2} };
+  var CUR = { EUR:{s:"€",d:2}, XOF:{s:"FCFA",d:0} };
   var cur = "EUR", filter = "all", query = "";
   var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   try { var sv = localStorage.getItem("pf_devise"); if (sv && CUR[sv]) cur = sv; } catch(e){}
@@ -428,11 +438,11 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     });
   }
 
-  var tt; function toast(m){ var t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(function(){ t.classList.remove("on"); }, 2400); }
+  var tt; function toast(m){ pfLog(m); var t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(function(){ t.classList.remove("on"); }, 2400); }
   function wireSoon(root){ root.querySelectorAll("[data-soon]").forEach(function(b){ b.onclick = function(){ toast("Cette page sera construite à la prochaine étape"); }; }); }
   wireSoon(document);
 
-  $("addBtn").addEventListener("click", openForm); $("newTop").addEventListener("click", openForm);
+  $("addBtn").addEventListener("click", openForm); 
   $("list").addEventListener("click", function(e){ var r = e.target.closest(".row"); if (r) openPay(+r.dataset.i); });
   $("list").addEventListener("keydown", function(e){ if (e.key === "Enter" || e.key === " "){ var r = e.target.closest(".row"); if (r){ e.preventDefault(); openPay(+r.dataset.i); } } });
   $("chips").addEventListener("click", function(e){ var b = e.target.closest("button"); if (!b) return; filter = b.dataset.f; renderChips(); renderList(); });
@@ -449,9 +459,9 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   function mark(){ menu.querySelectorAll("[data-cur]").forEach(function(b){ b.setAttribute("aria-checked", b.dataset.cur===cur?"true":"false"); }); }
   menu.addEventListener("click", function(e){ var b = e.target.closest("[data-cur]"); if (!b) return; cur = b.dataset.cur; try { localStorage.setItem("pf_devise", cur); } catch(x){} mark(); renderAll(false); toggle(false); });
 
-  mark(); renderAll(true); moveInd(); requestAnimationFrame(function(){ ind.classList.add("ready"); });
+  var _u=new URLSearchParams(location.search);if(_u.get("q")){query=_u.get("q");$("q").value=query;} mark(); renderAll(true); if(_u.get("new")) setTimeout(function(){$("addBtn").click();},400); moveInd(); requestAnimationFrame(function(){ ind.classList.add("ready"); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveInd);
 })();
 </script>
-</body>
+<div class="pov" id="pov" hidden></div><div class="ps" id="ps" hidden><a href="payfollow-historique.html"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Historique</a><a href="payfollow-exports.html"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>Exports</a><a href="payfollow-profil.html"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>Mon profil</a></div><script>(function(){var b=document.querySelector("[data-plus]"),s=document.getElementById("ps"),o=document.getElementById("pov");if(!b)return;function t(x){s.hidden=o.hidden=!x}b.addEventListener("click",function(e){e.preventDefault();t(s.hidden)});o.addEventListener("click",function(){t(false)})})();</script></body>
 </html>

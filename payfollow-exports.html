@@ -205,9 +205,24 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 .pro{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:#efe9fd;color:#7c3aed;margin-left:8px;vertical-align:1px}
 .rb[disabled]{background:#e6ece8;color:var(--mut);cursor:default;transform:none}
 .pl2{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--mut)}
+
+.menu{display:none!important}.avt,.av{display:grid;place-items:center;text-decoration:none}
+@media (max-width:899px){.top{flex-direction:column;align-items:stretch;gap:12px}.top .add{width:100%;padding:13px 18px;font-size:15px}}
+.pov{position:fixed;inset:0;z-index:55}.pov[hidden],.ps[hidden]{display:none}
+.ps{position:fixed;right:10px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:60;width:232px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:8px;box-shadow:0 16px 38px rgba(16,25,58,.16)}
+.ps a{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;color:var(--navy);text-decoration:none;font-weight:600;font-size:15px}
+.ps a[aria-current]{background:var(--gp);color:var(--gd)}
+@media (min-width:900px){.ps,.pov{display:none!important}}
+.cpick{background:#fff;border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(16,25,58,.05),0 10px 26px rgba(16,25,58,.05)}
+.cpick h2{margin:0;font-size:16px}.cpick .sub{margin:2px 0 12px}
+.cpick .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cpick button{white-space:nowrap;font-size:14px!important;display:flex;justify-content:space-between;align-items:center;gap:8px;border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:13px 14px;font-size:15px;font-weight:600;color:var(--navy)}
+.cpick button b{color:var(--mut)}
+.cpick button[aria-checked="true"]{border-color:var(--g);background:var(--gp);color:var(--gd)}
+.cpick button[aria-checked="true"] b{color:var(--gd)}
 </style>
 </head>
-<body>
+<body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="lg" viewBox="0 0 40 40"><path d="M8 11.5 25 6.5l2.2 5.3H8z" fill="currentColor" opacity=".7" transform="rotate(-8 8 11)"/><rect x="4" y="12" width="32" height="23" rx="5" fill="currentColor"/><rect x="22" y="19" width="14" height="9" rx="4.5" fill="var(--cl)"/><circle cx="27" cy="23.5" r="1.8" fill="currentColor"/></symbol>
 </svg>
@@ -217,25 +232,20 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     <div class="brand"><svg class="lg"><use href="#lg"/></svg><span>Pay<b>Follow</b></span></div>
     <nav class="tabs" id="tabs" aria-label="Navigation principale">
       <i class="ind" id="ind"></i>
-      <a href="payfollow-tableau-de-bord.html">Tableau de bord</a><a href="payfollow-clients.html">Clients</a><a href="payfollow-paiements.html">Paiements</a><a href="payfollow-relances.html">Relances</a><button aria-current="page">Exports</button>
+      <a href="payfollow-tableau-de-bord.html">Tableau de bord</a><a href="payfollow-clients.html">Clients</a><a href="payfollow-paiements.html">Paiements</a><a href="payfollow-relances.html">Relances</a><a href="payfollow-historique.html">Historique</a><button aria-current="page">Exports</button>
     </nav>
     <div style="display:flex;align-items:center;gap:10px">
-      <a class="new" href="payfollow-paiements.html">+ Nouveau paiement</a>
+      
       <div class="me">
-        <button class="avt" id="avatar" aria-haspopup="true" aria-expanded="false" aria-label="Mon compte">A</button>
-        <div class="menu" id="menu" hidden>
-          <h3>Devise de mon compte</h3>
-          <button role="menuitemradio" data-cur="EUR" aria-checked="true">Euro (€)</button>
-          <button role="menuitemradio" data-cur="XOF" aria-checked="false">Franc CFA (FCFA)</button>
-          <button role="menuitemradio" data-cur="USD" aria-checked="false">Dollar ($)</button>
-        </div>
+        <a class="avt" id="avatar" href="payfollow-profil.html" aria-label="Mon profil">A</a>
+        
       </div>
     </div>
   </div>
 </header>
 
 <main>
-  <div class="top rv"><div><h1>Exports</h1><p>Téléchargez vos données dans un fichier Excel, lisible aussi dans Google Sheets.</p></div></div>
+  <div class="top rv"><div><h1>Exports</h1><p>Téléchargez vos données dans un fichier Excel, lisible aussi dans Google Sheets.</p></div></div><section class="cpick rv" id="menu" style="--i:1"><h2>Devise des exports</h2><div class="sub">Les montants des fichiers téléchargés utilisent cette devise.</div><div class="opts"><button data-cur="EUR" aria-checked="true">Euro <b>€</b></button><button data-cur="XOF" aria-checked="false">Franc CFA <b>FCFA</b></button></div></section>
   <div class="sum rv" style="--i:1">Les exports Clients et Relances font partie du pack Pro. Ils sont offerts pendant votre essai gratuit.</div>
   <p class="pl2 rv" style="--i:2">Période</p>
   <div class="chips rv" id="chips" style="--i:2;margin-bottom:16px"></div>
@@ -247,14 +257,14 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   <a href="payfollow-clients.html"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-5.5 6.5-5.5s6.5 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .6 3.5 2.2 3.5 5.2"/></svg>Clients</a>
   <a href="payfollow-paiements.html"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/></svg>Paiements</a>
   <a href="payfollow-relances.html"><svg class="ic" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Relances</a>
-  <button aria-current="page"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>Plus</button>
+  <a href="#plus" data-plus role="button" aria-current="page"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>Plus</a>
 </nav>
 
 <div class="toast" id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 (function(){
-  var CUR={EUR:{s:"€",d:2},XOF:{s:"FCFA",d:0},USD:{s:"$",d:2}},cur="EUR";
+  var CUR={EUR:{s:"€",d:2},XOF:{s:"FCFA",d:0}},cur="EUR";
   try{var sv=localStorage.getItem("pf_devise");if(sv&&CUR[sv])cur=sv;}catch(e){}
   /* Données fictives, identiques à la page Paiements */
   var P = [
@@ -295,7 +305,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   var W={8364:128,8218:130,402:131,8222:132,8230:133,8224:134,8225:135,710:136,8240:137,352:138,8249:139,338:140,381:142,8216:145,8217:146,8220:147,8221:148,8226:149,8211:150,8212:151,732:152,8482:153,353:154,8250:155,339:156,382:158,376:159};
   function ansi(t){var o=new Uint8Array(t.length),n=0;for(var i=0;i<t.length;i++){var c=t.charCodeAt(i);o[n++]=c<256?c:(W[c]||63);}return o.slice(0,n);}
   function dl(name,text){var b=new Blob([ansi(text)],{type:"text/csv;charset=windows-1252"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);}
-  var tt;function toast(m){var t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){t.classList.remove("on");},2400);}
+  var tt;function toast(m){ pfLog(m);var t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){t.classList.remove("on");},2400);}
   var IC={pay:'<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/>',cli:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-5.5 6.5-5.5s6.5 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2 .6 3.5 2.2 3.5 5.2"/>',rel:'<path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7"/><path d="M10 20a2 2 0 0 0 4 0"/>'};
   var EX=[{k:"pay",t:"Paiements",s:"Client, montant, reçu, reste, date et statut",u:["paiement","paiements"]},
           {k:"cli",t:"Clients",s:"Total facturé, reçu et reste à recevoir par client",pro:1,u:["client","clients"]},
@@ -318,7 +328,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   function moveInd(){var b=document.querySelector('#tabs [aria-current="page"]');if(!b||!b.offsetWidth){ind.style.opacity=0;return;}ind.style.opacity=1;ind.style.width=b.offsetWidth+"px";ind.style.transform="translateX("+b.offsetLeft+"px)";}
   window.addEventListener("resize",moveInd);
   var av=$("avatar"),menu=$("menu");
-  function toggle(o){menu.hidden=!o;av.setAttribute("aria-expanded",o?"true":"false");}
+  function toggle(o){av.setAttribute("aria-expanded",o?"true":"false");}
   av.addEventListener("click",function(e){e.stopPropagation();toggle(menu.hidden);});
   document.addEventListener("click",function(e){if(!menu.contains(e.target))toggle(false);});
   document.addEventListener("keydown",function(e){if(e.key==="Escape")toggle(false);});
@@ -328,5 +338,5 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(moveInd);
 })();
 </script>
-</body>
+<div class="pov" id="pov" hidden></div><div class="ps" id="ps" hidden><a href="payfollow-historique.html"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Historique</a><a href="payfollow-exports.html" aria-current="page"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>Exports</a><a href="payfollow-profil.html"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>Mon profil</a></div><script>(function(){var b=document.querySelector("[data-plus]"),s=document.getElementById("ps"),o=document.getElementById("pov");if(!b)return;function t(x){s.hidden=o.hidden=!x}b.addEventListener("click",function(e){e.preventDefault();t(s.hidden)});o.addEventListener("click",function(){t(false)})})();</script></body>
 </html>
