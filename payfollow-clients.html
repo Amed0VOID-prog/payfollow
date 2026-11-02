@@ -361,7 +361,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   function mark(){ menu.querySelectorAll("[data-cur]").forEach(function(b){ b.setAttribute("aria-checked", b.dataset.cur===cur?"true":"false"); }); }
   menu.addEventListener("click", function(e){ var b = e.target.closest("[data-cur]"); if (!b) return; cur = b.dataset.cur; try { localStorage.setItem("pf_devise", cur); } catch(x){} mark(); renderAll(false); toggle(false); });
 
-  var _u=new URLSearchParams(location.search);if(_u.get("q")){query=_u.get("q");$("q").value=query;} mark(); renderAll(true); if(_u.get("new")) setTimeout(function(){$("addBtn").click();},400); moveInd(); requestAnimationFrame(function(){ ind.classList.add("ready"); });
+  try{JSON.parse(localStorage.getItem("pf_nc")||"[]").forEach(function(c){CL.push(stat({n:c.n,e:c.e||"—",t:c.t||"+226 00 00 00 00",p:0,late:0,up:0,d:0,s:"aujourd’hui",h:[]}))})}catch(x){} var _u=new URLSearchParams(location.search);if(_u.get("q")){query=_u.get("q");$("q").value=query;} mark(); renderAll(true); if(_u.get("new")) setTimeout(function(){$("addBtn").click();},400); moveInd(); requestAnimationFrame(function(){ ind.classList.add("ready"); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveInd);
 })();
 </script>

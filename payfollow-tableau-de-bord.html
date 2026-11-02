@@ -158,6 +158,20 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 .tabs{align-items:center;height:42px}
 .tabs>*{display:flex;align-items:center;justify-content:center;height:42px;padding-top:0;padding-bottom:0;line-height:1;text-decoration:none;box-sizing:border-box;margin:0}
 .tb>*{align-content:center;align-items:center;justify-content:center;line-height:1.2;text-decoration:none}
+.b1,.b2{font-family:inherit;cursor:pointer}.b2{border:0}
+.mo{position:fixed;inset:0;z-index:80;background:rgba(16,25,58,.45);display:grid;align-items:end;justify-items:center}.mo[hidden]{display:none}
+.md{background:#fff;width:100%;max-width:460px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto;animation:mup .22s ease}
+@keyframes mup{from{transform:translateY(24px);opacity:0}}
+@media (min-width:700px){.mo{align-items:center}.md{border-radius:22px}}
+.md .hd{display:flex;justify-content:space-between;gap:12px;margin-bottom:6px}.md h2{margin:0;font-size:20px}.md .hd span{color:var(--mut);font-size:14px}
+.md .x{flex:none;width:36px;height:36px;border:0;border-radius:50%;background:#f1f4f2;font-size:18px;color:var(--navy);cursor:pointer}
+.md label{display:block;font-size:13px;font-weight:700;margin:12px 0 6px;color:var(--navy)}
+.md input,.md select{width:100%;height:48px;border:1.5px solid var(--line);border-radius:14px;padding:0 14px;font:inherit;font-size:16px;background:#fff;color:var(--navy)}
+.md input:focus,.md select:focus{outline:0;border-color:var(--g);box-shadow:0 0 0 3px rgba(31,122,61,.2)}
+.md .er{color:#c0392b;font-size:13px;min-height:18px;margin:8px 0 0}
+.md .go{width:100%;height:50px;border:0;border-radius:99px;background:var(--g);color:#fff;font:inherit;font-weight:700;font-size:16px;margin-top:8px;cursor:pointer}
+#dtoast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:90;white-space:nowrap}
+#dtoast.on{opacity:1;transform:translate(-50%,0)}
 .dt{position:relative;z-index:30;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
 .dq{grid-column:1/-1;position:relative;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(16,25,58,.05),0 8px 22px rgba(16,25,58,.05);color:var(--mut)}
 .dq input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:16px;color:var(--navy);-webkit-appearance:none}
@@ -210,7 +224,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 <main>
   <section class="view" id="v-home">
     <div class="hello rv"><h1>Bonjour Amed</h1><p>Voici où en sont vos paiements.</p></div>
-    <div class="dt rv" style="--i:1"><label class="dq"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="gq" type="search" placeholder="Rechercher un client…" autocomplete="off" aria-label="Rechercher un client"><ul class="dr2" id="gres" hidden></ul></label><a class="b1" href="payfollow-clients.html">+ Ajouter un client</a><a class="b2" href="payfollow-paiements.html">+ Ajouter un paiement</a></div>
+    <div class="dt rv" style="--i:1"><label class="dq"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="gq" type="search" placeholder="Rechercher un client…" autocomplete="off" aria-label="Rechercher un client"><ul class="dr2" id="gres" hidden></ul></label><button type="button" class="b1" data-open="client">+ Ajouter un client</button><button type="button" class="b2" data-open="paiement">+ Ajouter un paiement</button></div>
     <div class="grid kpis" id="kpis"></div>
     <div class="grid two">
       <section class="card rv" style="--i:5" aria-labelledby="h-enc">
@@ -396,8 +410,25 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 <script>(function(){var C=["Agence Nafa","Atelier Sahel","Boutique Lumière","Café Zaka","Kandé Conseil","Maison Bissa","Studio Kora","Studio Okapi"],i=document.getElementById("gq"),r=document.getElementById("gres");
 function n(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
 function e(s){return s.replace(/[&<>"]/g,function(c){return"&#"+c.charCodeAt(0)+";"})}
-i.addEventListener("input",function(){var v=i.value.trim();if(!v){r.hidden=true;return}var m=C.filter(function(c){return n(c).indexOf(n(v))>-1}).slice(0,5);
+i.addEventListener("input",function(){var v=i.value.trim();if(!v){r.hidden=true;return}var X=[];try{X=JSON.parse(localStorage.getItem("pf_nc")||"[]").map(function(x){return x.n})}catch(z){}var m=C.concat(X).filter(function(c){return n(c).indexOf(n(v))>-1}).slice(0,5);
 r.innerHTML=m.map(function(c){return'<li><a href="payfollow-clients.html?q='+encodeURIComponent(c)+'">'+c+'<span>Client</span></a></li>'}).join("")+'<li><a href="payfollow-paiements.html?q='+encodeURIComponent(v)+'">Chercher « '+e(v)+' » dans les paiements</a></li>';r.hidden=false});
 i.addEventListener("keydown",function(k){if(k.key==="Enter"){var a=r.querySelector("a");if(a)location.href=a.href}});
-document.addEventListener("click",function(k){if(!r.contains(k.target)&&k.target!==i)r.hidden=true})})();</script><div class="pov" id="pov" hidden></div><div class="ps" id="ps" hidden><a href="payfollow-historique.html"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Historique</a><a href="payfollow-exports.html"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>Exports</a><a href="payfollow-profil.html"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>Mon profil</a></div><script>(function(){var b=document.querySelector("[data-plus]"),s=document.getElementById("ps"),o=document.getElementById("pov");if(!b)return;function t(x){s.hidden=o.hidden=!x}b.addEventListener("click",function(e){e.preventDefault();t(s.hidden)});o.addEventListener("click",function(){t(false)})})();</script></body>
+document.addEventListener("click",function(k){if(!r.contains(k.target)&&k.target!==i)r.hidden=true})})();</script><div class="mo" id="mo" hidden><div class="md" id="md" role="dialog" aria-modal="true"></div></div><div id="dtoast" role="status"></div><script>(function(){
+var NM=["Agence Nafa","Atelier Sahel","Boutique Lumière","Café Zaka","Kandé Conseil","Maison Bissa","Studio Kora","Studio Okapi"],S={EUR:"€",XOF:"FCFA"},mo=document.getElementById("mo"),md=document.getElementById("md"),tt;
+function cu(){try{return S[localStorage.getItem("pf_devise")]||"€"}catch(e){return"€"}}
+function ld(k){try{return JSON.parse(localStorage.getItem(k)||"[]")}catch(e){return[]}}
+function sv(k,o){var a=ld(k);a.push(o);try{localStorage.setItem(k,JSON.stringify(a))}catch(e){}}
+function e(s){return String(s).replace(/[&<>"]/g,function(c){return"&#"+c.charCodeAt(0)+";"})}
+function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function toast(m){ pfLog(m);var t=document.getElementById("dtoast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){t.classList.remove("on")},2400)}
+function close(){mo.hidden=true;document.body.style.overflow=""}
+function head(t,s){return'<div class="hd"><div><h2>'+t+'</h2><span>'+s+'</span></div><button class="x" type="button" data-x aria-label="Fermer">✕</button></div>'}
+function show(h){md.innerHTML=h;mo.hidden=false;document.body.style.overflow="hidden";var i=md.querySelector("input,select");if(i)setTimeout(function(){i.focus()},60)}
+function client(){show(head("Nouveau client","Vous pourrez compléter la fiche plus tard.")+'<form id="fm" novalidate><label for="fn">Nom du client</label><input id="fn" autocomplete="off" placeholder="Ex. Studio Kora"><label for="fe">E-mail (facultatif)</label><input id="fe" type="email" inputmode="email"><label for="ft">Téléphone (facultatif)</label><input id="ft" type="tel" inputmode="tel" placeholder="+226 …"><p class="er" id="er" role="alert"></p><button class="go" type="submit">Enregistrer le client</button></form>');
+document.getElementById("fm").onsubmit=function(ev){ev.preventDefault();var n=document.getElementById("fn").value.trim();if(!n){document.getElementById("er").textContent="Entrez le nom du client.";return}sv("pf_nc",{n:n,e:document.getElementById("fe").value.trim(),t:document.getElementById("ft").value.trim()});pfLog("Client ajouté : "+n);close();toast("Client ajouté : "+n)}}
+function paiement(){var d=new Date();d.setDate(d.getDate()+7);var N=NM.concat(ld("pf_nc").map(function(x){return x.n}));
+show(head("Nouveau paiement","À encaisser auprès d’un client.")+'<form id="fm" novalidate><label for="pc">Client</label><select id="pc">'+N.map(function(n){return"<option>"+e(n)+"</option>"}).join("")+'</select><label for="pa">Montant ('+cu()+')</label><input id="pa" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><label for="pd">Date d’échéance</label><input id="pd" type="date" value="'+iso(d)+'"><label for="pl">Description (facultatif)</label><input id="pl" placeholder="Ex. Création du logo"><p class="er" id="er" role="alert"></p><button class="go" type="submit">Ajouter le paiement</button></form>');
+document.getElementById("fm").onsubmit=function(ev){ev.preventDefault();var a=parseFloat(document.getElementById("pa").value),dt=document.getElementById("pd").value,c=document.getElementById("pc").value,er=document.getElementById("er");if(!(a>0)){er.textContent="Entrez un montant supérieur à 0.";return}if(!dt){er.textContent="Choisissez une date d’échéance.";return}sv("pf_np",{c:c,l:document.getElementById("pl").value.trim()||"Paiement",a:a,d:dt});pfLog("Paiement ajouté pour "+c);close();toast("Paiement ajouté pour "+c)}}
+document.querySelectorAll("[data-open]").forEach(function(b){b.addEventListener("click",function(){b.dataset.open==="client"?client():paiement()})});
+mo.addEventListener("click",function(ev){if(ev.target===mo||ev.target.closest("[data-x]"))close()});document.addEventListener("keydown",function(ev){if(ev.key==="Escape")close()})})();</script><div class="pov" id="pov" hidden></div><div class="ps" id="ps" hidden><a href="payfollow-historique.html"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Historique</a><a href="payfollow-exports.html"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>Exports</a><a href="payfollow-profil.html"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>Mon profil</a></div><script>(function(){var b=document.querySelector("[data-plus]"),s=document.getElementById("ps"),o=document.getElementById("pov");if(!b)return;function t(x){s.hidden=o.hidden=!x}b.addEventListener("click",function(e){e.preventDefault();t(s.hidden)});o.addEventListener("click",function(){t(false)})})();</script></body>
 </html>
