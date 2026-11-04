@@ -50,6 +50,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 
 /* Cartes chiffres */
 .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.two{margin-top:12px}
 .kpi:first-child,.kpi:last-child{grid-column:1/-1}
 .kt{display:flex;align-items:center;gap:10px;color:var(--mut);font-size:14px;font-weight:600}
 .tile{width:36px;height:36px;border-radius:12px;background:var(--gp);color:var(--g);display:grid;place-items:center}
@@ -81,6 +82,29 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 .bx:hover::after,.bx:focus::after{opacity:1}
 .col span{font-size:12px;color:var(--mut);white-space:nowrap}
 @keyframes grow{from{transform:scaleY(0)}}
+
+.es{margin:14px 0 0}.es .m{font-size:13px;color:var(--mut);font-weight:600}
+.es .big{font-size:15px;color:var(--mut);margin-top:2px}.es .big b{font-size:26px;color:var(--navy);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.es .split{margin-top:10px;background:var(--gp)}.es .sub{margin-top:8px}
+.lc{position:relative;margin-top:16px}.lc svg{display:block;overflow:visible;width:100%}
+.lc .gl{stroke:var(--line);stroke-width:1}.lc .base{stroke:#cfd8d3;stroke-width:1}
+.lc .ar{fill:var(--g);fill-opacity:.1}
+.lc .ln{fill:none;stroke:var(--g);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.lc .lnd{fill:none;stroke:var(--g);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:2 6}
+.lc .ex{fill:none;stroke:#8a948f;stroke-width:2;stroke-dasharray:5 4;stroke-linecap:round;stroke-linejoin:round}
+.lc .pt{fill:var(--g);stroke:#fff;stroke-width:2}.lc .pt.cur{fill:#fff;stroke:var(--g);stroke-width:2.5}
+.lc .pt.on{stroke-width:3;stroke:var(--gd)}.lc .pt.cur.on{stroke:var(--gd)}
+.lc .tl{fill:var(--mut);font-size:12px}.lc .ta{fill:var(--navy);font-size:12px;font-weight:700}
+.lc .hit{fill:transparent;cursor:pointer;outline:0}
+.lc .tt{position:absolute;z-index:3;background:var(--navy);color:#fff;font-size:12px;line-height:1.5;padding:7px 11px;border-radius:10px;white-space:nowrap;pointer-events:none;transform:translate(-50%,-100%);opacity:0;transition:opacity .15s}
+.lc .tt.on{opacity:1}.lc .tt b{font-weight:700}
+.lc.an .ln{stroke-dasharray:1;animation:dr 1.1s .2s cubic-bezier(.2,.7,.2,1) both}
+.lc.an .ar,.lc.an .ex,.lc.an .lnd,.lc.an .pt{animation:fi .6s .8s both}
+@keyframes dr{from{stroke-dashoffset:1}}@keyframes fi{from{opacity:0}}
+.lg2{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;font-size:12.5px;color:var(--mut)}
+.lg2 span{display:flex;align-items:center;gap:6px}.lg2 i{display:inline-block;width:18px;height:0;border-top:3px solid var(--g);border-radius:2px}
+.lg2 i.l2{border-top:2px dashed #8a948f}
+.es-n{margin:8px 0 0;font-size:12px;color:var(--mut)}
 .donut{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
 .ring{width:152px;height:152px;border-radius:50%;display:grid;place-items:center;flex:none;animation:spin .9s cubic-bezier(.2,.7,.2,1) both}
 @keyframes spin{from{opacity:0;transform:rotate(-70deg) scale(.85)}}
@@ -236,9 +260,9 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
     <div class="grid kpis" id="kpis"></div>
     <div class="grid two">
       <section class="card rv" style="--i:5" aria-labelledby="h-enc">
-        <div class="head"><div><h2 id="h-enc">Encaissements</h2><div class="sub">Montants reçus par mois</div></div>
+        <div class="head"><div><h2 id="h-enc">Aperçu des paiements</h2><div class="sub">Reçu et attendu, mois par mois</div></div>
           <div class="seg" id="seg"><button data-p="3" aria-pressed="false">3 mois</button><button data-p="6" aria-pressed="true">6 mois</button><button data-p="12" aria-pressed="false">Année</button></div></div>
-        <div class="bars" id="bars"></div>
+        <div class="es"><div class="m" id="es-m"></div><div class="big"><b id="es-got"></b> reçus sur <span id="es-exp"></span> attendus</div><div class="split"><i id="es-bar"></i></div><div class="sub" id="es-sub"></div></div><div class="lc" id="lc"></div><div class="lg2"><span><i></i>Reçu</span><span><i class="l2"></i>Attendu (échéances du mois)</span></div><p class="es-n" id="es-n"></p>
       </section>
       <section class="card rv" style="--i:6" aria-labelledby="h-age">
         <h2 id="h-age">Retards par ancienneté</h2><div class="sub" style="margin-bottom:16px">Plus un retard est ancien, plus il est difficile à récupérer</div>
@@ -281,11 +305,9 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   try { var sv = localStorage.getItem("pf_devise"); if (sv && CUR[sv]) cur = sv; } catch(e){}
 
   /* Données fictives : les montants ne sont pas convertis, seul le symbole change */
-  var ENC = {
-    3:[["Août",6200],["Sept.",7400],["Oct.",8900]],
-    6:[["Mai",5200],["Juin",6100],["Juil.",5800],["Août",6200],["Sept.",7400],["Oct.",8900]],
-    12:[["Nov.",3900],["Déc.",4600],["Janv.",4100],["Févr.",4800],["Mars",5300],["Avr.",4900],["Mai",5200],["Juin",6100],["Juil.",5800],["Août",6200],["Sept.",7400],["Oct.",8900]]
-  };
+  var CURM = "Novembre";
+  var MONTHS = [["Déc.",4600,4900],["Janv.",4100,4100],["Févr.",4800,5000],["Mars",5300,5300],["Avr.",4900,5200],["Mai",5200,5200],["Juin",6100,6600],["Juil.",5800,6000],["Août",6200,6200],["Sept.",7400,7900],["Oct.",8900,9600],["Nov.",2400,9250]];
+  var ENC = {3:MONTHS.slice(-3), 6:MONTHS.slice(-6), 12:MONTHS}; /* [mois, reçu, attendu] */
   var AGE = [["0 à 30 jours",1800,"#f59e0b"],["31 à 60 jours",900,"#ea580c"],["61 à 90 jours",350,"#dc2626"],["Plus de 90 jours",150,"#7f1d1d"]];
   var REL = [["Atelier Sahel",75,450],["Agence Nafa",34,900],["Studio Kora",12,1200],["Boutique Lumière",8,650]];
   var PAY = [["Agence Nafa","28 oct.",2400,"paid","Payé"],["Studio Kora","25 oct.",800,"paid","Payé"],["Café Zaka","22 oct.",1500,"wait","En attente"],["Boutique Lumière","18 oct.",650,"late","En retard"],["Atelier Sahel","12 oct.",450,"late","En retard"]];
@@ -335,13 +357,68 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
       if (anim) count(el, to, f, 1300, 150 + i*90); else el.textContent = f(to);
     });
   }
-  function renderChart(){
-    var d = ENC[period], mx = Math.max.apply(null, d.map(function(x){return x[1];}));
-    $("bars").className = "bars" + (d.length > 6 ? " many" : "");
-    $("bars").innerHTML = d.map(function(x,i){
-      return '<div class="col"><div class="bx'+(i===d.length-1?" cur":"")+'" tabindex="0" style="height:'+(x[1]/mx*80).toFixed(0)+'%;animation-delay:'+(i*45)+'ms" data-t="'+fmt(x[1])+'"></div><span class="'+(i%2?"x":"")+'">'+x[0]+'</span></div>';
-    }).join("");
+  function fmtR(n){ return Math.round(n).toLocaleString("fr-FR") + "\u00a0" + CUR[cur].s; }
+  function k1(n){ return (Math.round(n/100)/10).toLocaleString("fr-FR",{minimumFractionDigits:1,maximumFractionDigits:1}) + "\u00a0k"; }
+  function renderChart(anim){
+    var d = ENC[period], n = d.length, last = d[n-1], got = last[1], exp = last[2];
+    var pct = exp ? Math.min(got/exp*100, 100) : 0;
+    $("es-m").textContent = CURM + ", en cours";
+    if (anim) count($("es-got"), got, fmtR, 1100, 200); else $("es-got").textContent = fmtR(got);
+    $("es-exp").textContent = fmtR(exp);
+    $("es-bar").style.width = pct.toFixed(1) + "%";
+    $("es-sub").textContent = fmtP(pct) + " encaissé · " + fmtR(Math.max(exp-got,0)) + " restent à recevoir";
+
+    var wrap = $("lc"), W = Math.max(wrap.clientWidth || 320, 240), H0 = 150, T = 16;
+    var showAmt = n <= 6, skip = (n > 6 && W < 600) ? 2 : 1, H = H0 + 24 + (showAmt ? 18 : 0);
+    var mx = 0; d.forEach(function(x){ mx = Math.max(mx, x[1], x[2]); });
+    var ymax = (mx || 1) * 1.1;
+    var X = function(i){ return (i + .5) * W / n; }, Y = function(v){ return H0 - v / ymax * (H0 - T); };
+    var P = function(col, i){ return X(i).toFixed(1) + "," + Y(d[i][col]).toFixed(1); };
+    var rec = [], att = [];
+    for (var i = 0; i < n; i++){ rec.push(P(1,i)); att.push(P(2,i)); }
+    var solid = rec.slice(0, n-1).join(" "), area = "M" + rec.join(" L") + " L" + X(n-1).toFixed(1) + "," + H0 + " L" + X(0).toFixed(1) + "," + H0 + " Z";
+    var h = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Courbe des montants reçus et attendus sur ' + n + ' mois">';
+    h += '<line class="gl" x1="0" x2="' + W + '" y1="' + T + '" y2="' + T + '"/><line class="gl" x1="0" x2="' + W + '" y1="' + ((H0+T)/2) + '" y2="' + ((H0+T)/2) + '"/><line class="base" x1="0" x2="' + W + '" y1="' + H0 + '" y2="' + H0 + '"/>';
+    h += '<path class="ar" d="' + area + '"/>';
+    h += '<polyline class="ex" points="' + att.join(" ") + '"/>';
+    h += '<polyline class="ln" pathLength="1" points="' + solid + '"/>';
+    h += '<line class="lnd" x1="' + X(n-2).toFixed(1) + '" y1="' + Y(d[n-2][1]).toFixed(1) + '" x2="' + X(n-1).toFixed(1) + '" y2="' + Y(d[n-1][1]).toFixed(1) + '"/>';
+    for (i = 0; i < n; i++) h += '<circle class="pt' + (i === n-1 ? " cur" : "") + '" data-p="' + i + '" cx="' + X(i).toFixed(1) + '" cy="' + Y(d[i][1]).toFixed(1) + '" r="' + (i === n-1 ? 4.5 : 4) + '"/>';
+    h += '<g text-anchor="middle">';
+    for (i = 0; i < n; i++){
+      if ((n-1-i) % skip === 0) h += '<text class="tl" x="' + X(i).toFixed(1) + '" y="' + (H0+19) + '">' + d[i][0] + '</text>';
+      if (showAmt) h += '<text class="ta" x="' + X(i).toFixed(1) + '" y="' + (H0+37) + '">' + k1(d[i][1]) + '</text>';
+    }
+    h += '</g>';
+    for (i = 0; i < n; i++) h += '<rect class="hit" tabindex="0" data-i="' + i + '" x="' + (i*W/n).toFixed(1) + '" y="0" width="' + (W/n).toFixed(1) + '" height="' + H0 + '" aria-label="' + d[i][0] + ' : reçu ' + fmtR(d[i][1]) + ', attendu ' + fmtR(d[i][2]) + '"/>';
+    h += '</svg><div class="tt" id="tt" role="status"></div>';
+    wrap.className = "lc" + (anim && !calm ? " an" : "");
+    wrap.innerHTML = h;
+    wrap._g = {d:d, W:W, X:X, Y:Y};
+    $("es-n").textContent = (showAmt ? "k = millier " + (cur === "XOF" ? "de FCFA" : "d’euros") + ". " : "") + "Touchez un mois pour voir le détail. Le pointillé vert mène au mois en cours.";
   }
+  (function(){
+    var wrap = $("lc");
+    function tip(i){
+      var g = wrap._g, tt = $("tt"); if (!g || !tt) return;
+      var r = g.d[i], x = Math.min(Math.max(g.X(i), 62), g.W - 62), y = Math.min(g.Y(r[1]), g.Y(r[2])) - 10;
+      tt.innerHTML = "<b>" + r[0] + "</b><br>Reçu " + fmtR(r[1]) + "<br>Attendu " + fmtR(r[2]);
+      tt.style.left = x + "px"; tt.classList.add("on");
+      var hh = tt.offsetHeight, top = y - hh;
+      if (top >= 0){ tt.style.transform = "translate(-50%,-100%)"; tt.style.top = y + "px"; }
+      else { tt.style.transform = "translate(-50%,0)"; tt.style.top = (Math.max(g.Y(r[1]), g.Y(r[2])) + 14) + "px"; }
+      wrap.querySelectorAll(".pt").forEach(function(p){ p.classList.toggle("on", +p.dataset.p === i); });
+    }
+    function off(){
+      var tt = $("tt"); if (tt) tt.classList.remove("on");
+      wrap.querySelectorAll(".pt.on").forEach(function(p){ p.classList.remove("on"); });
+    }
+    ["pointerover","click","focusin"].forEach(function(ev){ wrap.addEventListener(ev, function(e){ var h = e.target.closest && e.target.closest(".hit"); if (h) tip(+h.dataset.i); }); });
+    wrap.addEventListener("pointerleave", function(e){ if (e.pointerType === "mouse") off(); });
+    wrap.addEventListener("focusout", off);
+    document.addEventListener("click", function(e){ if (!wrap.contains(e.target)) off(); });
+    var rt; window.addEventListener("resize", function(){ clearTimeout(rt); rt = setTimeout(function(){ if (wrap.clientWidth) renderChart(false); }, 120); });
+  })();
   function renderAge(anim){
     var tot = AGE.reduce(function(s,x){return s+x[1];},0), acc = 0;
     $("ring").style.background = "conic-gradient("+AGE.map(function(x){ var a = acc/tot*100; acc += x[1]; return x[2]+" "+a+"% "+(acc/tot*100)+"%"; }).join(",")+")";
@@ -357,7 +434,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
       return '<li><span class="dot">'+p[0][0]+'</span><div class="n"><b>'+p[0]+'</b><span class="sub">'+p[1]+'</span></div><span class="pill2 '+p[3]+' '+p[3]+'">'+p[4]+'</span><span class="a">'+fmt(p[2])+'</span></li>';
     }).join("");
   }
-  function renderAll(anim){ renderKpis(anim); renderChart(); renderAge(anim); renderLists(); }
+  function renderAll(anim){ renderKpis(anim); renderChart(anim); renderAge(anim); renderLists(); }
 
   /* Navigation entre pages : indicateur qui glisse + transition */
   var ind = $("ind"), NAMES = {clients:"Clients",paiements:"Paiements",relances:"Relances",exports:"Exports",plus:"Plus"};
@@ -393,7 +470,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
     var b = e.target.closest("button"); if (!b) return;
     period = +b.dataset.p;
     this.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed", x===b?"true":"false"); });
-    renderChart();
+    renderChart(true);
   });
 
   /* Menu du compte : devise */
@@ -406,7 +483,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   menu.addEventListener("click", function(e){
     var b = e.target.closest("[data-cur]"); if (!b) return;
     cur = b.dataset.cur; try { localStorage.setItem("pf_devise", cur); } catch(x){}
-    mark(); renderKpis(false); renderChart(); renderAge(false); renderLists(); toggle(false);
+    mark(); renderKpis(false); renderChart(false); renderAge(false); renderLists(); toggle(false);
   });
 
   document.addEventListener("click", function(e){ var b = e.target.closest(".rb"); if (b){ window.location.href = "payfollow-relances.html#" + encodeURIComponent(b.closest("li").querySelector("b").textContent); } });
