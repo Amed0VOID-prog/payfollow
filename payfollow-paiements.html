@@ -197,6 +197,14 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 .cpick button b{color:var(--mut)}
 .cpick button[aria-checked="true"]{border-color:var(--g);background:var(--gp);color:var(--gd)}
 .cpick button[aria-checked="true"] b{color:var(--gd)}
+.pkf input{padding-right:46px}
+.pkx{position:absolute;right:11px;top:11px;width:30px;height:30px;border:0;border-radius:50%;background:#eef2ef;color:var(--mut);font-size:13px;display:grid;place-items:center;cursor:pointer}
+.pkx[hidden],.pk[hidden]{display:none}
+.pk{list-style:none;margin:8px 0 0;padding:6px;border:1.5px solid var(--line);border-radius:20px;background:#fff;display:grid;gap:2px}
+.pk button{width:100%;text-align:left;border:0;background:none;padding:13px 14px;border-radius:14px;font-size:16px;color:var(--navy);cursor:pointer}
+.pk button:hover,.pk button:active{background:var(--gp)}
+.pk .add{color:var(--g);font-weight:700}
+.pk .nn{padding:13px 14px;color:var(--mut)}
 </style>
 </head>
 <body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script>
@@ -363,15 +371,55 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     dr.querySelector("[data-edit]").addEventListener("click", function(){ openEdit(i); });
     dr.querySelector("[data-del]").addEventListener("click", function(){ openDel(i); });
   }
+  /* Choix du client par recherche (remplace la liste déroulante) */
+  function pkNorm(t){ return t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim(); }
+  function pkEsc(t){ return String(t).replace(/[&<>"]/g,function(c){ return "&#"+c.charCodeAt(0)+";"; }); }
+  function pkHtml(id, val){
+    return '<div class="f pkf"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg><input id="'+id+'" autocomplete="off" placeholder="Rechercher un client…" value="'+pkEsc(val||"")+'"><button type="button" class="pkx" aria-label="Changer de client"'+(val?'':' hidden')+'>✕</button></div><ul class="pk" id="'+id+'-l" hidden></ul>';
+  }
+  function pkWire(id){
+    var inp = $(id), ul = $(id+"-l"), x = inp.parentNode.querySelector(".pkx");
+    function recent(){ var seen = []; P.slice().sort(function(a,b){ return a.d < b.d ? 1 : -1; }).forEach(function(p){ if (seen.indexOf(p.c) < 0) seen.push(p.c); }); return seen; }
+    function draw(){
+      var q = pkNorm(inp.value), v = inp.value.trim();
+      var list = q ? NAMES.filter(function(n){ return pkNorm(n).indexOf(q) > -1; }) : recent().slice(0,4);
+      var h = list.slice(0,5).map(function(n){ return '<li><button type="button" data-n="'+pkEsc(n)+'">'+pkEsc(n)+'</button></li>'; }).join("");
+      if (q && !NAMES.some(function(n){ return pkNorm(n) === q; })) h += '<li><button type="button" class="add" data-n="'+pkEsc(v)+'" data-new="1">+ Ajouter « '+pkEsc(v)+' »</button></li>';
+      ul.innerHTML = h || '<li class="nn">Aucun client</li>'; ul.hidden = false; x.hidden = !inp.value;
+    }
+    inp.addEventListener("input", function(){ inp.dataset.new = ""; draw(); });
+    inp.addEventListener("focus", function(){ inp.select(); draw(); });
+    inp.addEventListener("blur", function(){ setTimeout(function(){ ul.hidden = true; }, 180); });
+    ul.addEventListener("mousedown", function(ev){ ev.preventDefault(); });
+    ul.addEventListener("click", function(ev){
+      var b = ev.target.closest("button[data-n]"); if (!b) return;
+      inp.value = b.dataset.n; inp.dataset.new = b.dataset.new || ""; inp.removeAttribute("aria-invalid"); ul.hidden = true; x.hidden = false;
+    });
+    x.addEventListener("click", function(){ inp.value = ""; inp.dataset.new = ""; draw(); inp.focus(); });
+  }
+  function pkResolve(id, errEl){
+    var inp = $(id), v = inp.value.trim(), m = NAMES.filter(function(n){ return pkNorm(n) === pkNorm(v); })[0];
+    if (m) return m;
+    if (v && inp.dataset.new === "1"){
+      NAMES.push(v);
+      try { var a = JSON.parse(localStorage.getItem("pf_nc")||"[]"); a.push({n:v,e:"",t:""}); localStorage.setItem("pf_nc", JSON.stringify(a)); } catch(e){}
+      if (window.pfLog) pfLog("Client ajouté : " + v);
+      return v;
+    }
+    inp.setAttribute("aria-invalid","true"); inp.focus();
+    errEl.textContent = v ? "Choisissez un client dans la liste, ou ajoutez-le." : "Choisissez un client.";
+    return null;
+  }
   function openEdit(i){
     var p = P[i], paid = p.s === "paid";
     open('<div class="dh"><div><h2>Modifier le paiement</h2><span class="sub">'+p.c+' · '+p.l+'</span></div>'+X+'</div>'+
       '<form class="fm" id="ef" novalidate>'+
-      '<label class="fl" for="ec">Client</label><div class="f"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg><select id="ec">'+NAMES.map(function(n){ return '<option'+(n===p.c?' selected':'')+'>'+n+'</option>'; }).join("")+'</select><svg class="ic r" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></div>'+
+      '<label class="fl" for="ec">Client</label>'+pkHtml("ec", p.c)+
       '<label class="fl" for="ea">Montant total</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.wal+'</svg><input id="ea" type="number" inputmode="decimal" min="0" step="any" value="'+p.a+'"><b>'+CUR[cur].s+'</b></div>'+
       (paid ? '' : '<label class="fl" for="ed">Date d’échéance</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.cal+'</svg><input id="ed" type="date" value="'+p.d+'"></div>')+
       '<label class="fl" for="el">Description</label><div class="f"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6"/></svg><input id="el" value="'+p.l.replace(/"/g,"&quot;")+'"></div>'+
       '<p class="err" id="eer" role="alert"></p><button class="go" type="submit">Enregistrer les modifications</button><button class="go2" type="button" id="ex">Annuler</button></form>');
+    pkWire("ec");
     $("ex").addEventListener("click", function(){ openPay(i); });
     $("ef").addEventListener("submit", function(ev){
       ev.preventDefault(); var a = parseFloat($("ea").value), dt = paid ? p.d : $("ed").value;
@@ -380,7 +428,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       if (!(a > 0)) return bad($("ea"), "Entrez un montant supérieur à 0.");
       if (a < got(p) - 0.005) return bad($("ea"), "Le montant ne peut pas être inférieur à ce qui est déjà reçu (" + fmt(got(p)) + ").");
       if (!dt) return bad($("ed"), "Choisissez une date d’échéance.");
-      p.c = $("ec").value; p.a = a; p.l = $("el").value.trim() || "Paiement";
+      var cn = pkResolve("ec", $("eer")); if (!cn) return; p.c = cn; p.a = a; p.l = $("el").value.trim() || "Paiement";
       if (rest(p) <= 0.005){ if (!paid){ p.s = "paid"; p.d = p.v.length ? p.v[p.v.length-1].d : dt; } }
       else if (paid){ var d2 = new Date(); d2.setDate(d2.getDate()+14); p.s = "wait"; p.d = iso(d2); }
       else if (dt !== p.d){ p.d = dt; p.s = dt < iso(new Date()) ? "late" : "wait"; }
@@ -422,17 +470,18 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     var d = new Date(); d.setDate(d.getDate()+14);
     open('<div class="dh"><div><h2>Nouveau paiement</h2><span class="sub">Ajoutez un paiement attendu d’un client.</span></div>'+X+'</div>'+
       '<form class="fm" id="fm" novalidate>'+
-      '<label class="fl" for="pc">Client</label><div class="f"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg><select id="pc">'+NAMES.map(function(n){ return '<option>'+n+'</option>'; }).join("")+'</select><svg class="ic r" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></div>'+
+      '<label class="fl" for="pc">Client</label>'+pkHtml("pc", "")+
       '<label class="fl" for="pa">Montant</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.wal+'</svg><input id="pa" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><b>'+CUR[cur].s+'</b></div>'+
       '<label class="fl" for="pd">Date d’échéance</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.cal+'</svg><input id="pd" type="date" value="'+iso(d)+'"></div>'+
       '<label class="fl" for="pl">Description (facultatif)</label><div class="f"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6"/></svg><input id="pl" placeholder="Ex. Création du logo"></div>'+
       '<p class="err" id="fer" role="alert"></p><button class="go" type="submit">Ajouter le paiement</button></form>');
+    pkWire("pc");
     $("fm").addEventListener("submit", function(ev){
       ev.preventDefault(); var a = parseFloat($("pa").value), dt = $("pd").value;
+      $("pc").removeAttribute("aria-invalid"); var c = pkResolve("pc", $("fer")); if (!c) return;
       $("pa").removeAttribute("aria-invalid"); $("pd").removeAttribute("aria-invalid");
       if (!(a > 0)){ $("pa").setAttribute("aria-invalid","true"); $("pa").focus(); $("fer").textContent = "Entrez un montant supérieur à 0."; return; }
       if (!dt){ $("pd").setAttribute("aria-invalid","true"); $("pd").focus(); $("fer").textContent = "Choisissez une date d’échéance."; return; }
-      var c = $("pc").value;
       P.push({c:c,l:$("pl").value.trim()||"Paiement",a:a,d:dt,s:dt < iso(new Date()) ? "late" : "wait",v:[]});
       filter = "all"; query = ""; $("q").value = ""; close(); renderAll(false); toast("Paiement ajouté pour " + c);
     });

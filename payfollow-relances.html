@@ -241,6 +241,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 <main>
   <div class="top rv"><div><h1>Relances</h1><p>Choisissez un client, le message est déjà prêt.</p></div></div>
   <div class="sum rv" id="sum" style="--i:1"></div>
+  <label class="search" style="display:block;margin-bottom:12px"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Rechercher un client" aria-label="Rechercher un client à relancer" autocomplete="off"></label>
   <ul class="list" id="list"></ul>
 </main>
 
@@ -282,14 +283,17 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     return h+" "+p.c+",\n\nMalgré mes précédents messages, "+r+" restent impayés pour « "+p.l+" » depuis le "+d+". Ceci est mon dernier rappel.\n\nMerci de régler ce solde sous 7 jours. Passé ce délai, je devrai suspendre mes prestations en cours.";
   }
   var tt;function toast(m){ pfLog(m);var t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){t.classList.remove("on");},2400);}
-  function render(){
-    var idx=L.map(function(p,i){return i;}).sort(function(x,y){return L[x].d<L[y].d?-1:1;});
+  function nz(t){return t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();}
+  function render(noAnim){
+    var qq=nz($("q").value);
+    var idx=L.map(function(p,i){return i;}).filter(function(i){return !qq||nz(L[i].c).indexOf(qq)>-1;}).sort(function(x,y){return L[x].d<L[y].d?-1:1;});
     var tot=L.reduce(function(t,p){return t+rest(p);},0);
     $("sum").innerHTML=L.length?'<b>'+L.length+' relance'+(L.length>1?'s':'')+' à faire</b> · '+fmt(tot)+' à récupérer':'Tout est à jour.';
     $("list").innerHTML=idx.length?idx.map(function(i,k){var p=L[i],n=lvl(p);
-      return '<li class="rr rv" style="--i:'+Math.min(k+2,10)+'"><div class="who"><span class="av2" style="'+tint(p.c)+'">'+p.c[0]+'</span><div><b>'+p.c+'</b><span class="sub">Reste '+fmt(rest(p))+'</span><span class="sub late" style="font-weight:600">'+ago(p)+' jours de retard</span></div></div>'+
-        '<div class="ra"><span class="lv l'+n+'">'+LVL[n]+'</span><button class="rb" data-i="'+i+'">Relancer</button></div></li>';}).join(""):'<li class="none">Aucune relance à faire pour le moment.</li>';
+      return '<li class="rr'+(noAnim?'':' rv')+'" style="--i:'+Math.min(k+2,10)+'"><div class="who"><span class="av2" style="'+tint(p.c)+'">'+p.c[0]+'</span><div><b>'+p.c+'</b><span class="sub">Reste '+fmt(rest(p))+'</span><span class="sub late" style="font-weight:600">'+ago(p)+' jours de retard</span></div></div>'+
+        '<div class="ra"><span class="lv l'+n+'">'+LVL[n]+'</span><button class="rb" data-i="'+i+'">Relancer</button></div></li>';}).join(""):'<li class="none">'+(L.length?'Aucun client trouvé.':'Aucune relance à faire pour le moment.')+'</li>';
   }
+  $("q").addEventListener("input",function(){render(true);});
   var dr=$("dr"),ov=$("ov"),lastFocus=null;
   var X='<button class="x" data-x aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>';
   function open(html){
