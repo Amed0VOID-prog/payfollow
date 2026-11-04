@@ -231,7 +231,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 .pk .nn{padding:12px;color:var(--mut)}
 </style>
 </head>
-<body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script>
+<body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script><script src="payfollow-data.js"></script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="lg" viewBox="0 0 40 40"><path d="M8 11.5 25 6.5l2.2 5.3H8z" fill="currentColor" opacity=".7" transform="rotate(-8 8 11)"/><rect x="4" y="12" width="32" height="23" rx="5" fill="currentColor"/><rect x="22" y="19" width="14" height="9" rx="4.5" fill="var(--cl)"/><circle cx="27" cy="23.5" r="1.8" fill="currentColor"/></symbol>
 </svg>
@@ -305,13 +305,30 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   try { var sv = localStorage.getItem("pf_devise"); if (sv && CUR[sv]) cur = sv; } catch(e){}
 
   /* Données fictives : les montants ne sont pas convertis, seul le symbole change */
-  var CURM = "Novembre";
-  var MONTHS = [["Déc.",4600,4900],["Janv.",4100,4100],["Févr.",4800,5000],["Mars",5300,5300],["Avr.",4900,5200],["Mai",5200,5200],["Juin",6100,6600],["Juil.",5800,6000],["Août",6200,6200],["Sept.",7400,7900],["Oct.",8900,9600],["Nov.",2400,9250]];
-  var ENC = {3:MONTHS.slice(-3), 6:MONTHS.slice(-6), 12:MONTHS}; /* [mois, reçu, attendu] */
-  var AGE = [["0 à 30 jours",1800,"#f59e0b"],["31 à 60 jours",900,"#ea580c"],["61 à 90 jours",350,"#dc2626"],["Plus de 90 jours",150,"#7f1d1d"]];
-  var REL = [["Atelier Sahel",75,450],["Agence Nafa",34,900],["Studio Kora",12,1200],["Boutique Lumière",8,650]];
-  var PAY = [["Agence Nafa","28 oct.",2400,"paid","Payé"],["Studio Kora","25 oct.",800,"paid","Payé"],["Café Zaka","22 oct.",1500,"wait","En attente"],["Boutique Lumière","18 oct.",650,"late","En retard"],["Atelier Sahel","12 oct.",450,"late","En retard"]];
-  var TOTAL = 12450, LATE = 3200;
+  /* Chiffres calculés à partir des paiements enregistrés (payfollow-data.js) */
+  var AGEL = ["0 à 30 jours","31 à 60 jours","61 à 90 jours","Plus de 90 jours"], AGEC = ["#f59e0b","#ea580c","#dc2626","#7f1d1d"];
+  var STL = {paid:"Payé", wait:"En attente", late:"En retard"};
+  var AGE = [], REL = [], PAY = [], TOTAL = 0, LATE = 0, NOPEN = 0, NCLI = 0, ONT = 0, CONS = 0;
+  function dayS(d){ return new Date(d+"T12:00:00").toLocaleDateString("fr-FR",{day:"numeric",month:"short"}); }
+  function compute(){
+    var P = PF.payments(), td = PF.today(), age = [0,0,0,0], late = [], cl = {};
+    TOTAL = 0; LATE = 0; NOPEN = 0; ONT = 0; CONS = 0;
+    P.forEach(function(p){
+      var g = p.v.reduce(function(t,x){ return t+x.a; }, 0), r = Math.max(0, p.a - g);
+      if (p.s === "paid"){ CONS++; if (p.d <= p.e) ONT++; return; }
+      TOTAL += r; NOPEN++;
+      if (p.s === "late"){
+        CONS++; LATE += r; var dd = PF.daysBetween(p.e, td);
+        age[dd <= 30 ? 0 : dd <= 60 ? 1 : dd <= 90 ? 2 : 3] += r; late.push([p.c, dd, r]); cl[p.c] = 1;
+      }
+    });
+    NCLI = Object.keys(cl).length;
+    AGE = AGEL.map(function(l,i){ return [l, age[i], AGEC[i]]; });
+    REL = late.sort(function(a,b){ return b[1] - a[1]; }).slice(0,4);
+    PAY = P.map(function(p,i){ return {p:p, i:i, k:(p.lastV && p.lastV > p.k) ? p.lastV : p.k}; })
+      .sort(function(a,b){ return a.k < b.k ? 1 : a.k > b.k ? -1 : b.i - a.i; }).slice(0,5)
+      .map(function(x){ var p = x.p; return [p.c, dayS(p.s === "paid" ? p.d : p.e), p.a, p.s, STL[p.s]]; });
+  }
   var IC = {
     wallet:'<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/>',
     clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -341,13 +358,15 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   }
 
   function renderKpis(anim){
-    var coming = TOTAL - LATE, pct = coming / TOTAL * 100;
+    var coming = TOTAL - LATE, pct = TOTAL ? coming / TOTAL * 100 : 0;
+    var mm = PF.monthly(2), now = mm[1][1], rate = CONS ? ONT / CONS * 100 : 0;
+    var evo = mm[1][2] > 0 ? Math.round(now / mm[1][2] * 100) + " % de l’attendu" : "Mois en cours";
     var K = [
-      ["À encaisser", TOTAL, "m", "+8 % ce mois-ci", 0, "wallet",
+      ["À encaisser", TOTAL, "m", NOPEN + (NOPEN > 1 ? " paiements en cours" : " paiement en cours"), 0, "wallet",
         '<div class="split"><i style="width:'+pct.toFixed(1)+'%"></i></div><div class="sl"><span><u></u>'+fmt(coming)+' à venir</span><span><u class="r"></u>'+fmt(LATE)+' en retard</span></div>'],
-      ["En retard", LATE, "m", "4 clients", 1, "clock", ""],
-      ["Encaissé en octobre", 8900, "m", "+20 % sur un mois", 0, "inbox", ""],
-      ["Payés à temps", 86, "p", "+4 points", 0, "check", '<div class="split solo"><i style="width:86%"></i></div>']
+      ["En retard", LATE, "m", LATE > 0 ? NCLI + (NCLI > 1 ? " clients" : " client") : "Aucun retard", LATE > 0 ? 1 : 0, "clock", ""],
+      ["Encaissé en " + PF.monthName().toLowerCase(), now, "m", evo, 0, "inbox", ""],
+      ["Payés à temps", rate, "p", CONS ? ONT + " sur " + CONS + " échus" : "Aucun paiement échu", 0, "check", '<div class="split solo"><i style="width:'+rate.toFixed(0)+'%"></i></div>']
     ];
     $("kpis").innerHTML = K.map(function(k,i){
       return '<article class="card kpi rv" style="--i:'+(i+1)+'"><div class="kt"><span class="tile'+(k[4]?" bad":"")+'"><svg class="ic" viewBox="0 0 24 24">'+IC[k[5]]+'</svg></span>'+k[0]+'</div><span class="v" data-to="'+k[1]+'" data-f="'+k[2]+'"></span><span class="chip'+(k[4]?" bad":"")+'">'+k[3]+'</span>'+k[6]+'</article>';
@@ -360,9 +379,9 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   function fmtR(n){ return Math.round(n).toLocaleString("fr-FR") + "\u00a0" + CUR[cur].s; }
   function k1(n){ return (Math.round(n/100)/10).toLocaleString("fr-FR",{minimumFractionDigits:1,maximumFractionDigits:1}) + "\u00a0k"; }
   function renderChart(anim){
-    var d = ENC[period], n = d.length, last = d[n-1], got = last[1], exp = last[2];
+    var d = PF.monthly(period), n = d.length, last = d[n-1], got = last[1], exp = last[2];
     var pct = exp ? Math.min(got/exp*100, 100) : 0;
-    $("es-m").textContent = CURM + ", en cours";
+    $("es-m").textContent = PF.monthName() + ", en cours";
     if (anim) count($("es-got"), got, fmtR, 1100, 200); else $("es-got").textContent = fmtR(got);
     $("es-exp").textContent = fmtR(exp);
     $("es-bar").style.width = pct.toFixed(1) + "%";
@@ -421,20 +440,22 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   })();
   function renderAge(anim){
     var tot = AGE.reduce(function(s,x){return s+x[1];},0), acc = 0;
-    $("ring").style.background = "conic-gradient("+AGE.map(function(x){ var a = acc/tot*100; acc += x[1]; return x[2]+" "+a+"% "+(acc/tot*100)+"%"; }).join(",")+")";
+    $("ring").style.background = tot ? "conic-gradient("+AGE.map(function(x){ var a = acc/tot*100; acc += x[1]; return x[2]+" "+a+"% "+(acc/tot*100)+"%"; }).join(",")+")" : "#e8f3ec";
     $("ringc").innerHTML = '<span><span id="rn"></span><small>en retard</small></span>';
     if (anim) count($("rn"), tot, fmt, 1300, 300); else $("rn").textContent = fmt(tot);
     $("leg").innerHTML = AGE.map(function(x){ return '<li><i style="background:'+x[2]+'"></i>'+x[0]+'<b>'+fmt(x[1])+'</b></li>'; }).join("");
   }
   function renderLists(){
-    $("rel").innerHTML = REL.map(function(r){
-      return '<li><span class="dot">'+r[0][0]+'</span><div class="n"><b>'+r[0]+'</b><span class="d late">En retard de '+r[1]+' jours</span></div><span class="a">'+fmt(r[2])+'</span><button class="rb">Préparer la relance</button></li>';
-    }).join("");
-    $("pay").innerHTML = PAY.map(function(p){
-      return '<li><span class="dot">'+p[0][0]+'</span><div class="n"><b>'+p[0]+'</b><span class="sub">'+p[1]+'</span></div><span class="pill2 '+p[3]+' '+p[3]+'">'+p[4]+'</span><span class="a">'+fmt(p[2])+'</span></li>';
+    $("rel").innerHTML = REL.length ? REL.map(function(r){
+      return '<li><span class="dot">'+r[0][0]+'</span><div class="n"><b>'+r[0]+'</b><span class="d late">En retard de '+r[1]+(r[1] > 1 ? ' jours' : ' jour')+'</span></div><span class="a">'+fmtR(r[2])+'</span><button class="rb">Préparer la relance</button></li>';
+    }).join("") : '<li class="sub" style="display:block;padding:14px 12px">Aucun retard : tout est à jour.</li>';
+    $("pay").innerHTML = !PAY.length ? '<li class="sub" style="display:block;padding:14px 12px">Aucun paiement pour l’instant.</li>' : PAY.map(function(p){
+      return '<li><span class="dot">'+p[0][0]+'</span><div class="n"><b>'+p[0]+'</b><span class="sub">'+p[1]+'</span></div><span class="pill2 '+p[3]+' '+p[3]+'">'+p[4]+'</span><span class="a">'+fmtR(p[2])+'</span></li>';
     }).join("");
   }
-  function renderAll(anim){ renderKpis(anim); renderChart(anim); renderAge(anim); renderLists(); }
+  function renderAll(anim){ compute(); renderKpis(anim); renderChart(anim); renderAge(anim); renderLists(); }
+
+  window.pfRefresh = function(){ renderAll(false); };
 
   /* Navigation entre pages : indicateur qui glisse + transition */
   var ind = $("ind"), NAMES = {clients:"Clients",paiements:"Paiements",relances:"Relances",exports:"Exports",plus:"Plus"};
@@ -492,14 +513,14 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveInd);
 })();
 </script>
-<script>(function(){var C=["Agence Nafa","Atelier Sahel","Boutique Lumière","Café Zaka","Kandé Conseil","Maison Bissa","Studio Kora","Studio Okapi"],i=document.getElementById("gq"),r=document.getElementById("gres");
+<script>(function(){var C=PF.clientNames(),i=document.getElementById("gq"),r=document.getElementById("gres");
 function n(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
 function e(s){return s.replace(/[&<>"]/g,function(c){return"&#"+c.charCodeAt(0)+";"})}
-i.addEventListener("input",function(){var v=i.value.trim();if(!v){r.hidden=true;return}var X=[];try{X=JSON.parse(localStorage.getItem("pf_nc")||"[]").map(function(x){return x.n})}catch(z){}var m=C.concat(X).filter(function(c){return n(c).indexOf(n(v))>-1}).slice(0,5);
+i.addEventListener("input",function(){var v=i.value.trim();if(!v){r.hidden=true;return}var m=C.filter(function(c){return n(c).indexOf(n(v))>-1}).slice(0,5);
 r.innerHTML=m.map(function(c){return'<li><a href="payfollow-clients.html?q='+encodeURIComponent(c)+'">'+c+'<span>Client</span></a></li>'}).join("")+'<li><a href="payfollow-paiements.html?q='+encodeURIComponent(v)+'">Chercher « '+e(v)+' » dans les paiements</a></li>';r.hidden=false});
 i.addEventListener("keydown",function(k){if(k.key==="Enter"){var a=r.querySelector("a");if(a)location.href=a.href}});
 document.addEventListener("click",function(k){if(!r.contains(k.target)&&k.target!==i)r.hidden=true})})();</script><div class="mo" id="mo" hidden><div class="md" id="md" role="dialog" aria-modal="true"></div></div><div id="dtoast" role="status"></div><script>(function(){
-var NM=["Agence Nafa","Atelier Sahel","Boutique Lumière","Café Zaka","Kandé Conseil","Maison Bissa","Studio Kora","Studio Okapi"],S={EUR:"€",XOF:"FCFA"},mo=document.getElementById("mo"),md=document.getElementById("md"),tt;
+var NM=PF.clientNames(),S={EUR:"€",XOF:"FCFA"},mo=document.getElementById("mo"),md=document.getElementById("md"),tt;
 function cu(){try{return S[localStorage.getItem("pf_devise")]||"€"}catch(e){return"€"}}
 function ld(k){try{return JSON.parse(localStorage.getItem(k)||"[]")}catch(e){return[]}}
 function sv(k,o){var a=ld(k);a.push(o);try{localStorage.setItem(k,JSON.stringify(a))}catch(e){}}
@@ -510,7 +531,7 @@ function close(){mo.hidden=true;document.body.style.overflow=""}
 function head(t,s){return'<div class="hd"><div><h2>'+t+'</h2><span>'+s+'</span></div><button class="x" type="button" data-x aria-label="Fermer">✕</button></div>'}
 function show(h){md.innerHTML=h;mo.hidden=false;document.body.style.overflow="hidden";var i=md.querySelector("input,select");if(i)setTimeout(function(){i.focus()},60)}
 function client(){show(head("Nouveau client","Vous pourrez compléter la fiche plus tard.")+'<form id="fm" novalidate><label for="fn">Nom du client</label><input id="fn" autocomplete="off" placeholder="Ex. Studio Kora"><label for="fe">E-mail (facultatif)</label><input id="fe" type="email" inputmode="email"><label for="ft">Téléphone (facultatif)</label><input id="ft" type="tel" inputmode="tel" placeholder="+226 …"><p class="er" id="er" role="alert"></p><button class="go" type="submit">Enregistrer le client</button></form>');
-document.getElementById("fm").onsubmit=function(ev){ev.preventDefault();var n=document.getElementById("fn").value.trim();if(!n){document.getElementById("er").textContent="Entrez le nom du client.";return}sv("pf_nc",{n:n,e:document.getElementById("fe").value.trim(),t:document.getElementById("ft").value.trim()});pfLog("Client ajouté : "+n);close();toast("Client ajouté : "+n)}}
+document.getElementById("fm").onsubmit=function(ev){ev.preventDefault();var n=document.getElementById("fn").value.trim();if(!n){document.getElementById("er").textContent="Entrez le nom du client.";return}PF.addClient(n,document.getElementById("fe").value.trim(),document.getElementById("ft").value.trim());pfLog("Client ajouté : "+n);close();toast("Client ajouté : "+n)}}
 function nz(t){return t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim()}
 function pkWire(N){var inp=document.getElementById("pc"),ul=document.getElementById("pc-l"),x=inp.parentNode.querySelector(".pkx");
 function draw(){var q=nz(inp.value),v=inp.value.trim(),l=q?N.filter(function(n){return nz(n).indexOf(q)>-1}):N.slice(0,4);
@@ -521,9 +542,9 @@ inp.addEventListener("input",function(){inp.dataset.new="";draw()});inp.addEvent
 inp.addEventListener("blur",function(){setTimeout(function(){ul.hidden=true},180)});ul.addEventListener("mousedown",function(ev){ev.preventDefault()});
 ul.addEventListener("click",function(ev){var b=ev.target.closest("button[data-n]");if(!b)return;inp.value=b.dataset.n;inp.dataset.new=b.dataset.new||"";ul.hidden=true;x.hidden=false});
 x.addEventListener("click",function(){inp.value="";inp.dataset.new="";draw();inp.focus()})}
-function paiement(){var d=new Date();d.setDate(d.getDate()+7);var N=NM.concat(ld("pf_nc").map(function(x){return x.n}));
+function paiement(){var d=new Date();d.setDate(d.getDate()+7);var N=PF.clientNames();
 show(head("Nouveau paiement","À encaisser auprès d’un client.")+'<form id="fm" novalidate><label for="pc">Client</label><div class="pkw"><input id="pc" autocomplete="off" placeholder="Rechercher un client…"><button type="button" class="pkx" aria-label="Changer de client" hidden>✕</button></div><ul class="pk" id="pc-l" hidden></ul><label for="pa">Montant ('+cu()+')</label><input id="pa" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><label for="pd">Date d’échéance</label><input id="pd" type="date" value="'+iso(d)+'"><label for="pl">Description (facultatif)</label><input id="pl" placeholder="Ex. Création du logo"><p class="er" id="er" role="alert"></p><button class="go" type="submit">Ajouter le paiement</button></form>');pkWire(N);
-document.getElementById("fm").onsubmit=function(ev){ev.preventDefault();var a=parseFloat(document.getElementById("pa").value),dt=document.getElementById("pd").value,er=document.getElementById("er"),pi=document.getElementById("pc"),c=pi.value.trim(),mm=N.filter(function(n){return nz(n)===nz(c)})[0];if(mm)c=mm;else if(c&&pi.dataset.new==="1"){sv("pf_nc",{n:c,e:"",t:""});pfLog("Client ajouté : "+c)}else{er.textContent=c?"Choisissez un client dans la liste, ou ajoutez-le.":"Choisissez un client.";pi.focus();return}if(!(a>0)){er.textContent="Entrez un montant supérieur à 0.";return}if(!dt){er.textContent="Choisissez une date d’échéance.";return}sv("pf_np",{c:c,l:document.getElementById("pl").value.trim()||"Paiement",a:a,d:dt});pfLog("Paiement ajouté pour "+c);close();toast("Paiement ajouté pour "+c)}}
+document.getElementById("fm").onsubmit=function(ev){ev.preventDefault();var a=parseFloat(document.getElementById("pa").value),dt=document.getElementById("pd").value,er=document.getElementById("er"),pi=document.getElementById("pc"),c=pi.value.trim(),mm=N.filter(function(n){return nz(n)===nz(c)})[0];if(mm)c=mm;else if(c&&pi.dataset.new==="1"){c=PF.addClient(c);pfLog("Client ajouté : "+c)}else{er.textContent=c?"Choisissez un client dans la liste, ou ajoutez-le.":"Choisissez un client.";pi.focus();return}if(!(a>0)){er.textContent="Entrez un montant supérieur à 0.";return}if(!dt){er.textContent="Choisissez une date d’échéance.";return}PF.addPayment({c:c,l:document.getElementById("pl").value,a:a,e:dt});pfLog("Paiement ajouté pour "+c);close();if(window.pfRefresh)pfRefresh();toast("Paiement ajouté pour "+c)}}
 document.querySelectorAll("[data-open]").forEach(function(b){b.addEventListener("click",function(){b.dataset.open==="client"?client():paiement()})});
 mo.addEventListener("click",function(ev){if(ev.target===mo||ev.target.closest("[data-x]"))close()});document.addEventListener("keydown",function(ev){if(ev.key==="Escape")close()})})();</script><div class="pov" id="pov" hidden></div><div class="ps" id="ps" hidden><a href="payfollow-historique.html"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Historique</a><a href="payfollow-exports.html"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>Exports</a><a href="payfollow-profil.html"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>Mon profil</a></div><script>(function(){var b=document.querySelector("[data-plus]"),s=document.getElementById("ps"),o=document.getElementById("pov");if(!b)return;function t(x){s.hidden=o.hidden=!x}b.addEventListener("click",function(e){e.preventDefault();t(s.hidden)});o.addEventListener("click",function(){t(false)})})();</script></body>
 </html>

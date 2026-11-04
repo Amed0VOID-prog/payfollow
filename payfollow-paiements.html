@@ -207,7 +207,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 .pk .nn{padding:13px 14px;color:var(--mut)}
 </style>
 </head>
-<body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script>
+<body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script><script src="payfollow-data.js"></script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="lg" viewBox="0 0 40 40"><path d="M8 11.5 25 6.5l2.2 5.3H8z" fill="currentColor" opacity=".7" transform="rotate(-8 8 11)"/><rect x="4" y="12" width="32" height="23" rx="5" fill="currentColor"/><rect x="22" y="19" width="14" height="9" rx="4.5" fill="var(--cl)"/><circle cx="27" cy="23.5" r="1.8" fill="currentColor"/></symbol>
 </svg>
@@ -259,20 +259,10 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   try { var sv = localStorage.getItem("pf_devise"); if (sv && CUR[sv]) cur = sv; } catch(e){}
 
-  /* Données fictives : c=client, l=description, a=montant, d=date (échéance ou paiement), s=statut */
-  var P = [
-    ["Agence Nafa","Site vitrine",2400,"2026-10-28","paid"],["Studio Kora","Charte graphique",800,"2026-10-25","paid"],
-    ["Studio Okapi","Photos produits",800,"2026-10-20","paid"],["Maison Bissa","Campagne réseaux",2200,"2026-10-17","paid"],
-    ["Kandé Conseil","Audit",2700,"2026-10-03","paid"],["Studio Okapi","Logo",2000,"2026-09-28","paid"],
-    ["Boutique Lumière","Catalogue",1800,"2026-09-28","paid"],["Maison Bissa","Site e-commerce",2000,"2026-09-01","paid"],
-    ["Atelier Sahel","Affiches",1200,"2026-08-08","paid"],
-    ["Studio Kora","Refonte du site",1800,"2026-10-19","late",[{a:600,d:"2026-09-30"}]],["Boutique Lumière","Photos boutique",650,"2026-10-18","late"],
-    ["Agence Nafa","Maintenance",900,"2026-10-14","late"],["Atelier Sahel","Flyers",450,"2026-10-12","late"],
-    ["Kandé Conseil","Formation",1350,"2026-11-20","wait"],["Maison Bissa","Newsletter",2400,"2026-11-15","wait",[{a:400,d:"2026-09-15"}]],
-    ["Studio Kora","Vidéo promo",1800,"2026-11-12","wait"],["Café Zaka","Menu et affiches",1500,"2026-11-08","wait"],
-    ["Agence Nafa","Application mobile",2600,"2026-11-05","wait"]
-  ].map(function(x){ return {c:x[0],l:x[1],a:x[2],d:x[3],s:x[4],v:x[5]||(x[4]==="paid"?[{a:x[2],d:x[3]}]:[])}; });
-  var NAMES = ["Agence Nafa","Atelier Sahel","Boutique Lumière","Café Zaka","Kandé Conseil","Maison Bissa","Studio Kora","Studio Okapi"];
+  /* Données : fichier commun payfollow-data.js. c=client, l=description, a=montant, e=échéance, d=date affichée, s=statut calculé, v=versements */
+  var P = [], NAMES = PF.clientNames();
+  function loadP(){ P = PF.payments(); }
+  loadP();
   var TINT = [["#1f7a3d","#e8f3ec"],["#1d4ed8","#e6eefc"],["#b45309","#fef3e2"],["#7c3aed","#efe9fd"],["#be185d","#fce8f1"]];
   var ST = {late:"En retard",wait:"En attente",paid:"Payé"};
   var $ = function(id){ return document.getElementById(id); };
@@ -326,7 +316,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     var rows = P.map(function(p,i){ return [p,i]; }).filter(function(x){
       return (filter==="all" || x[0].s===filter) && (!q || (x[0].c+" "+x[0].l).toLowerCase().indexOf(q) > -1);
     }).sort(function(a,b){ return a[0].d < b[0].d ? 1 : -1; });
-    if (!rows.length){ $("list").innerHTML = '<li class="none">Aucun paiement ne correspond à votre recherche.</li>'; return; }
+    if (!rows.length){ $("list").innerHTML = '<li class="none">' + (P.length ? 'Aucun paiement ne correspond à votre recherche.' : 'Aucun paiement pour l’instant. Touchez « + Nouveau paiement » pour ajouter le premier.') + '</li>'; return; }
     $("list").innerHTML = rows.map(function(x,k){
       var p = x[0];
       return '<li class="row rv" style="--i:'+Math.min(k,10)+'" data-i="'+x[1]+'" tabindex="0" role="button" aria-label="Ouvrir le paiement de '+p.c+'">'+
@@ -336,7 +326,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
         '<svg class="ic chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></li>';
     }).join("");
   }
-  function renderAll(anim){ renderStats(anim); renderChips(); renderList(); }
+  function renderAll(anim){ loadP(); renderStats(anim); renderChips(); renderList(); }
 
   /* Tiroir (ordinateur) / feuille du bas (mobile) */
   var dr = $("dr"), ov = $("ov"), lastFocus = null;
@@ -401,8 +391,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     var inp = $(id), v = inp.value.trim(), m = NAMES.filter(function(n){ return pkNorm(n) === pkNorm(v); })[0];
     if (m) return m;
     if (v && inp.dataset.new === "1"){
-      NAMES.push(v);
-      try { var a = JSON.parse(localStorage.getItem("pf_nc")||"[]"); a.push({n:v,e:"",t:""}); localStorage.setItem("pf_nc", JSON.stringify(a)); } catch(e){}
+      v = PF.addClient(v); NAMES.push(v);
       if (window.pfLog) pfLog("Client ajouté : " + v);
       return v;
     }
@@ -428,10 +417,9 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       if (!(a > 0)) return bad($("ea"), "Entrez un montant supérieur à 0.");
       if (a < got(p) - 0.005) return bad($("ea"), "Le montant ne peut pas être inférieur à ce qui est déjà reçu (" + fmt(got(p)) + ").");
       if (!dt) return bad($("ed"), "Choisissez une date d’échéance.");
-      var cn = pkResolve("ec", $("eer")); if (!cn) return; p.c = cn; p.a = a; p.l = $("el").value.trim() || "Paiement";
-      if (rest(p) <= 0.005){ if (!paid){ p.s = "paid"; p.d = p.v.length ? p.v[p.v.length-1].d : dt; } }
-      else if (paid){ var d2 = new Date(); d2.setDate(d2.getDate()+14); p.s = "wait"; p.d = iso(d2); }
-      else if (dt !== p.d){ p.d = dt; p.s = dt < iso(new Date()) ? "late" : "wait"; }
+      var cn = pkResolve("ec", $("eer")); if (!cn) return;
+      var e2 = paid ? p.e : dt; if (paid && a - got(p) > 0.005) e2 = PF.addDays(PF.today(), 14);
+      PF.updatePayment(p.id, {c:cn, a:a, l:$("el").value, e:e2});
       renderAll(false); openPay(i); toast("Paiement modifié");
     });
   }
@@ -441,7 +429,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       '<p style="font-size:15px;color:var(--mut);margin:0 0 18px">Cette action est définitive : le paiement et ses versements seront effacés.</p>'+
       '<button class="go dgr" id="dy">Oui, supprimer</button><button class="go2" id="dn">Annuler</button>');
     $("dn").addEventListener("click", function(){ openPay(i); });
-    $("dy").addEventListener("click", function(){ P.splice(i,1); close(); renderAll(false); toast("Paiement supprimé"); });
+    $("dy").addEventListener("click", function(){ PF.deletePayment(p.id); close(); renderAll(false); toast("Paiement supprimé"); });
   }
   function openVers(i){
     var p = P[i], r = rest(p);
@@ -459,10 +447,9 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       if (!(a > 0)) return bad($("va"), "Entrez un montant supérieur à 0.");
       if (a > r + 0.005) return bad($("va"), "Le montant dépasse le solde restant (" + fmt(r) + ").");
       if (!dt) return bad($("vd"), "Choisissez la date de réception.");
-      p.v.push({a:a,d:dt});
+      PF.addVersement(p.id, a, dt); renderAll(false); p = P[i];
       var done = rest(p) <= 0.005;
-      if (done){ p.s = "paid"; p.d = dt; }
-      renderAll(false); openPay(i);
+      openPay(i);
       toast(done ? "Paiement soldé : " + p.c : "Versement de " + fmt(a) + " enregistré");
     });
   }
@@ -482,7 +469,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       $("pa").removeAttribute("aria-invalid"); $("pd").removeAttribute("aria-invalid");
       if (!(a > 0)){ $("pa").setAttribute("aria-invalid","true"); $("pa").focus(); $("fer").textContent = "Entrez un montant supérieur à 0."; return; }
       if (!dt){ $("pd").setAttribute("aria-invalid","true"); $("pd").focus(); $("fer").textContent = "Choisissez une date d’échéance."; return; }
-      P.push({c:c,l:$("pl").value.trim()||"Paiement",a:a,d:dt,s:dt < iso(new Date()) ? "late" : "wait",v:[]});
+      PF.addPayment({c:c,l:$("pl").value,a:a,e:dt});
       filter = "all"; query = ""; $("q").value = ""; close(); renderAll(false); toast("Paiement ajouté pour " + c);
     });
   }
@@ -508,7 +495,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   function mark(){ menu.querySelectorAll("[data-cur]").forEach(function(b){ b.setAttribute("aria-checked", b.dataset.cur===cur?"true":"false"); }); }
   menu.addEventListener("click", function(e){ var b = e.target.closest("[data-cur]"); if (!b) return; cur = b.dataset.cur; try { localStorage.setItem("pf_devise", cur); } catch(x){} mark(); renderAll(false); toggle(false); });
 
-  try{JSON.parse(localStorage.getItem("pf_nc")||"[]").forEach(function(c){if(NAMES.indexOf(c.n)<0)NAMES.push(c.n)});JSON.parse(localStorage.getItem("pf_np")||"[]").forEach(function(p){P.push({c:p.c,l:p.l,a:p.a,d:p.d,s:p.d<iso(new Date())?"late":"wait",v:[]})})}catch(x){} var _u=new URLSearchParams(location.search);if(_u.get("q")){query=_u.get("q");$("q").value=query;} mark(); renderAll(true); if(_u.get("new")) setTimeout(function(){$("addBtn").click();},400); moveInd(); requestAnimationFrame(function(){ ind.classList.add("ready"); });
+  var _u=new URLSearchParams(location.search);if(_u.get("q")){query=_u.get("q");$("q").value=query;} mark(); renderAll(true); if(_u.get("new")) setTimeout(function(){$("addBtn").click();},400); moveInd(); requestAnimationFrame(function(){ ind.classList.add("ready"); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveInd);
 })();
 </script>
