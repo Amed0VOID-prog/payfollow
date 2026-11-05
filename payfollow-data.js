@@ -81,6 +81,19 @@
     } catch (e) {}
     save(); return { ok: true, n: n };
   }
+  /* Supprimer un client : sa fiche et tous ses paiements (avec versements et relances). Retourne le nombre de paiements effacés. */
+  function deleteClient(name) {
+    load(); var c = find(name); if (!c) return -1;
+    var q = norm(c.n), gone = db.payments.filter(function (p) { return norm(p.c) === q; });
+    db.clients = db.clients.filter(function (x) { return x !== c; });
+    db.payments = db.payments.filter(function (p) { return norm(p.c) !== q; });
+    gone.forEach(function (p) { if (db.rel) delete db.rel[p.id]; });
+    try {
+      var a = JSON.parse(localStorage.getItem("pf_nc") || "[]").filter(function (x) { return !x || norm(x.n) !== q; });
+      localStorage.setItem("pf_nc", JSON.stringify(a));
+    } catch (e) {}
+    save(); return gone.length;
+  }
   function load() {
     if (db) return db;
     try { var r = localStorage.getItem(KEY); if (r) db = JSON.parse(r); } catch (e) {}
@@ -196,7 +209,7 @@
     today: today, addDays: addDays, daysBetween: daysBetween, iso: iso,
     payments: payments, clients: clients, clientNames: clientNames,
     addClient: function (n, e, t) { load(); var r = addClient(n, e, t); save(); return r; },
-    updateClient: updateClient,
+    updateClient: updateClient, deleteClient: deleteClient,
     relances: relances, allRelances: allRelances, addRelance: addRelance,
     addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, deletePayment: deletePayment,
     monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm

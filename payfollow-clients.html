@@ -95,6 +95,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 .dh h2{margin:0;font-size:22px;letter-spacing:-.02em}
 .acts{margin-left:auto;display:flex;gap:6px}.acts+.x{margin-left:8px}
 .x2{border:0;background:var(--bg);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none;cursor:pointer}
+.x2.dg{color:var(--red)}.dgr{background:var(--red)!important;box-shadow:0 10px 22px rgba(198,40,40,.25)!important}
 .x{margin-left:auto;border:0;background:var(--bg);width:38px;height:38px;border-radius:50%;display:grid;place-items:center}
 .ct{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
 .ct a{display:grid;justify-items:center;gap:4px;padding:11px 6px;border-radius:14px;background:var(--gp);color:var(--gd);font-size:13px;font-weight:700;transition:background .2s}
@@ -336,14 +337,25 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     var c = CL[i], wa = c.t.replace(/\D/g,""), ct = "";
     if (c.e) ct += '<a href="mailto:'+c.e+'"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 8 8 6 8-6"/></svg>E-mail</a>';
     if (c.t) ct += '<a href="tel:'+c.t.replace(/\s/g,"")+'"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Appeler</a><a href="https://wa.me/'+wa+'" target="_blank" rel="noopener"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20l1.3-4.2A8 8 0 1 1 8.4 18.8z"/></svg>WhatsApp</a>';
-    open('<div class="dh"><span class="av2" style="'+tint(c)+'">'+c.n[0]+'</span><div><h2>'+c.n+'</h2><span class="sub">Client depuis '+c.s+'</span></div><span class="acts"><button class="x2" data-edit aria-label="Modifier ce client"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg></button></span><button class="x" data-x aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
+    open('<div class="dh"><span class="av2" style="'+tint(c)+'">'+c.n[0]+'</span><div><h2>'+c.n+'</h2><span class="sub">Client depuis '+c.s+'</span></div><span class="acts"><button class="x2" data-edit aria-label="Modifier ce client"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg></button><button class="x2 dg" data-del aria-label="Supprimer ce client"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></span><button class="x" data-x aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'+
       (ct ? '<div class="ct">'+ct+'</div>' : '<p class="sub" style="margin:4px 0 14px">Aucune coordonnée enregistrée pour ce client.</p>')+
       '<div class="ds"><div><span>Facturé</span><b id="d1"></b></div><div><span>Payé</span><b id="d2"></b></div><div><span>Reste</span><b id="d3" class="'+(c.late?"late":"")+'"></b></div></div>'+
       '<h3>Historique</h3>'+(c.h.length ? '<ul class="hist">' : '<p class="sub">Aucun paiement pour ce client.</p><ul class="hist">')+c.h.map(function(h){ return '<li><span class="n">'+h[0]+'</span><span class="pill2 '+h[2]+'">'+(h[2]==="paid"?"Payé":h[2]==="late"?"En retard":"En attente")+'</span><b>'+fmt(h[1])+'</b></li>'; }).join("")+'</ul>'+
       (c.late ? '<a class="go" style="display:grid;place-items:center" href="payfollow-relances.html#'+encodeURIComponent(c.n)+'">Préparer une relance</a>' : '<a class="go" style="display:grid;place-items:center" href="payfollow-paiements.html">Nouveau paiement</a>'));
     [["d1",c.f],["d2",c.p],["d3",c.reste]].forEach(function(x,k){ count($(x[0]),x[1],fmt,900,150+k*80); });
     dr.querySelector("[data-edit]").addEventListener("click", function(){ editClient(i); });
+    dr.querySelector("[data-del]").addEventListener("click", function(){ delClient(i); });
     wireSoon(dr);
+  }
+  function delClient(i){
+    var c = CL[i], X = '<button class="x" data-x aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>';
+    var n = PF.payments().filter(function(p){ return PF.norm(p.c) === PF.norm(c.n); }).length;
+    open('<div class="dh"><div><h2>Supprimer ce client ?</h2><span class="sub"></span></div>'+X+'</div>'+
+      '<p style="font-size:15px;color:var(--mut);margin:0 0 18px">'+(n ? 'Ses '+n+' paiement'+(n>1?'s':'')+', avec leurs versements et relances, seront aussi effacés. ' : '')+'Cette action est définitive.</p>'+
+      '<button class="go dgr" id="dy">Oui, supprimer</button><button type="button" id="dn" style="width:100%;height:50px;margin-top:10px;border:1.5px solid var(--g);border-radius:99px;background:#fff;color:var(--g);font-weight:700;font-size:16px;cursor:pointer">Annuler</button>');
+    dr.querySelector(".dh .sub").textContent = c.n;
+    $("dn").addEventListener("click", function(){ openClient(i); });
+    $("dy").addEventListener("click", function(){ PF.deleteClient(c.n); build(); close(); renderAll(false); toast("Client supprimé : " + c.n); });
   }
   function editClient(i){
     var c = CL[i], X = '<button class="x" data-x aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>';
