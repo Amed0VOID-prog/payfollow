@@ -66,6 +66,21 @@
     try { var a = JSON.parse(localStorage.getItem("pf_nc") || "[]"); a.push({ n: n, e: e || "", t: t || "" }); localStorage.setItem("pf_nc", JSON.stringify(a)); } catch (x) {}
     return n;
   }
+  /* Modifier un client : nom, e-mail, téléphone. Un changement de nom suit dans tous ses paiements. */
+  function updateClient(old, o) {
+    load(); o = o || {};
+    var c = find(old); if (!c) return { ok: false, err: "absent" };
+    var n = String(o.n || "").trim(); if (!n) return { ok: false, err: "nom" };
+    var other = find(n); if (other && other !== c) return { ok: false, err: "existe" };
+    var from = c.n;
+    c.n = n; c.e = String(o.e || "").trim(); c.t = String(o.t || "").trim(); delete c.x;
+    db.payments.forEach(function (p) { if (norm(p.c) === norm(from)) p.c = n; });
+    try {
+      var a = JSON.parse(localStorage.getItem("pf_nc") || "[]").filter(function (x) { return !x || norm(x.n) !== norm(from); });
+      localStorage.setItem("pf_nc", JSON.stringify(a));
+    } catch (e) {}
+    save(); return { ok: true, n: n };
+  }
   function load() {
     if (db) return db;
     try { var r = localStorage.getItem(KEY); if (r) db = JSON.parse(r); } catch (e) {}
@@ -181,6 +196,7 @@
     today: today, addDays: addDays, daysBetween: daysBetween, iso: iso,
     payments: payments, clients: clients, clientNames: clientNames,
     addClient: function (n, e, t) { load(); var r = addClient(n, e, t); save(); return r; },
+    updateClient: updateClient,
     relances: relances, allRelances: allRelances, addRelance: addRelance,
     addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, deletePayment: deletePayment,
     monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm
