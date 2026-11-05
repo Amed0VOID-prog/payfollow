@@ -257,14 +257,19 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 <aside class="dr" id="dr" role="dialog" aria-modal="true" aria-label="Préparer une relance" hidden></aside>
 <div class="toast" id="toast" role="status"></div>
 
+<script src="payfollow-data.js"></script>
 <script>
 (function(){
   var CUR={EUR:{s:"€",d:2},XOF:{s:"FCFA",d:0}},cur="EUR";
   try{var sv=localStorage.getItem("pf_devise");if(sv&&CUR[sv])cur=sv;}catch(e){}
   var calm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
-  /* Données fictives : c=client, l=description, a=montant, g=déjà reçu, d=échéance, h=dates des relances faites */
-  var L=[{c:"Studio Kora",l:"Refonte du site",a:1800,g:600,d:"2026-10-19",h:[]},{c:"Boutique Lumière",l:"Photos boutique",a:650,g:0,d:"2026-10-18",h:[]},
-    {c:"Agence Nafa",l:"Maintenance",a:900,g:0,d:"2026-10-14",h:[]},{c:"Atelier Sahel",l:"Flyers",a:450,g:0,d:"2026-10-12",h:["2026-10-26"]}];
+  /* Données réelles (payfollow-data.js) : paiements en retard. c=client, l=description, a=montant, g=déjà reçu, d=échéance, h=dates des relances faites */
+  function build(){
+    return PF.payments().filter(function(p){ return p.s === "late"; }).map(function(p){
+      return {id:p.id,c:p.c,l:p.l,a:p.a,g:p.v.reduce(function(t,x){return t+x.a;},0),d:p.e,h:PF.relances(p.id)};
+    });
+  }
+  var L = build();
   var TINT=[["#1f7a3d","#e8f3ec"],["#1d4ed8","#e6eefc"],["#b45309","#fef3e2"],["#7c3aed","#efe9fd"],["#be185d","#fce8f1"]];
   var TONES=["Amical","Ferme","Dernier rappel"],LVL=["1re relance","2e relance","Dernier rappel"];
   var $=function(id){return document.getElementById(id);};
@@ -327,7 +332,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       function ok(){toast("Message copié");}
       function fb(){msg.select();try{document.execCommand("copy");ok();}catch(e){toast("Copie impossible, copiez le texte à la main");}}
       if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(msg.value).then(ok,fb);else fb();});
-    $("mk").addEventListener("click",function(){p.h.push(iso(new Date()));close();render();toast("Relance notée pour "+p.c);});
+    $("mk").addEventListener("click",function(){PF.addRelance(p.id,iso(new Date()));L=build();close();render();toast("Relance notée pour "+p.c);});
   }
   $("list").addEventListener("click",function(e){var b=e.target.closest(".rb");if(b)openRel(+b.dataset.i);});
   document.querySelectorAll("[data-soon]").forEach(function(b){b.onclick=function(){toast("Cette page sera construite à la prochaine étape");};});

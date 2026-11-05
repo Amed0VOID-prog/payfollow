@@ -51,7 +51,9 @@
     add("Studio Kora", "Vidéo promo", 1800, "2026-11-12", [[1000, "2026-11-03"]]);
     add("Café Zaka", "Menu et affiches", 1500, "2026-11-08");
     add("Agence Nafa", "Application mobile", 2600, "2026-11-05", [[1400, "2026-11-02"]]);
-    return { v: 1, demo: true, clients: names.map(function (n) { return { n: n, e: "", t: "", x: 1 }; }), payments: P };
+    var rel = {};
+    P.forEach(function (p) { if (p.c === "Atelier Sahel" && p.l === "Flyers") rel[p.id] = [D("2026-10-26")]; });
+    return { v: 1, demo: true, clients: names.map(function (n) { return { n: n, e: "", t: "", x: 1 }; }), payments: P, rel: rel };
   }
 
   /* ---------- Stockage ---------- */
@@ -60,7 +62,7 @@
   function addClient(n, e, t) {
     n = String(n || "").trim(); if (!n) return "";
     var c = find(n); if (c) return c.n;
-    db.clients.push({ n: n, e: e || "", t: t || "" });
+    db.clients.push({ n: n, e: e || "", t: t || "", k: today() });
     try { var a = JSON.parse(localStorage.getItem("pf_nc") || "[]"); a.push({ n: n, e: e || "", t: t || "" }); localStorage.setItem("pf_nc", JSON.stringify(a)); } catch (x) {}
     return n;
   }
@@ -68,6 +70,10 @@
     if (db) return db;
     try { var r = localStorage.getItem(KEY); if (r) db = JSON.parse(r); } catch (e) {}
     if (!db || !db.payments || !db.clients) db = seed();
+    if (!db.rel) {
+      db.rel = {};
+      if (db.demo) db.payments.forEach(function (p) { if (p.x && p.c === "Atelier Sahel" && p.l === "Flyers") db.rel[p.id] = [addDays(p.e, 14)]; });
+    }
     /* reprise des anciennes clés (pages pas encore mises à jour) */
     try {
       JSON.parse(localStorage.getItem("pf_nc") || "[]").forEach(function (c) { if (c && c.n && !find(c.n)) db.clients.push({ n: c.n, e: c.e || "", t: c.t || "" }); });
@@ -89,11 +95,12 @@
       id: p.id, c: p.c, l: p.l, a: p.a, e: p.e, k: p.k || p.e,
       d: done ? last : p.e, lastV: p.v.length ? last : "",
       s: done ? "paid" : (p.e < today() ? "late" : "wait"),
-      v: p.v.map(function (x) { return { a: x.a, d: x.d }; })
+      x: p.x ? 1 : 0,
+      v: p.v.map(function (x) { return { a: x.a, d: x.d, r: x.r ? 1 : 0 }; })
     };
   }
   function payments() { return load().payments.map(view); }
-  function clients() { return load().clients.map(function (c) { return { n: c.n, e: c.e || "", t: c.t || "" }; }); }
+  function clients() { return load().clients.map(function (c) { return { n: c.n, e: c.e || "", t: c.t || "", k: c.k || "" }; }); }
   function clientNames() { return load().clients.map(function (c) { return c.n; }); }
 
   /* ---------- Écriture ---------- */
@@ -111,8 +118,23 @@
     if (o.e != null) p.e = o.e;
     save(); return true;
   }
-  function addVersement(id, a, d) { var p = byId(id); if (!p) return false; p.v.push({ a: +a, d: d }); save(); return true; }
-  function deletePayment(id) { load(); db.payments = db.payments.filter(function (p) { return p.id !== id; }); save(); }
+  function addVersement(id, a, d) { var p = byId(id); if (!p) return false; p.v.push({ a: +a, d: d, r: 1 }); save(); return true; }
+  function deletePayment(id) { load(); db.payments = db.payments.filter(function (p) { return p.id !== id; }); if (db.rel) delete db.rel[id]; save(); }
+
+  /* ---------- Relances faites : dates par paiement ---------- */
+  function relances(id) { load(); return ((db.rel || {})[id] || []).slice(); }
+  function allRelances() {
+    load(); var out = [];
+    db.payments.forEach(function (p) {
+      ((db.rel || {})[p.id] || []).forEach(function (d, i) { out.push({ id: p.id, c: p.c, l: p.l, d: d, n: Math.min(2, i) }); });
+    });
+    return out.sort(function (a, b) { return a.d < b.d ? 1 : -1; });
+  }
+  function addRelance(id, d) {
+    load(); if (!byId(id)) return false;
+    if (!db.rel) db.rel = {};
+    (db.rel[id] = db.rel[id] || []).push(d || today()); save(); return true;
+  }
 
   /* ---------- Chiffres par mois : reçu (versements) et attendu (échéances) ---------- */
   function monthly(n) {
@@ -136,6 +158,8 @@
     db.payments = db.payments.filter(function (p) { return !p.x; });
     var used = {}; db.payments.forEach(function (p) { used[norm(p.c)] = 1; });
     db.clients = db.clients.filter(function (c) { return !c.x || used[norm(c.n)]; });
+    var ids = {}; db.payments.forEach(function (p) { ids[p.id] = 1; });
+    Object.keys(db.rel || {}).forEach(function (k) { if (!ids[k]) delete db.rel[k]; });
     db.demo = false; save();
     try { var keep = JSON.parse(localStorage.getItem("pf_nc") || "[]").filter(function (c) { return db.clients.some(function (k) { return norm(k.n) === norm(c.n); }); }); localStorage.setItem("pf_nc", JSON.stringify(keep)); } catch (e) {}
   }
@@ -157,6 +181,7 @@
     today: today, addDays: addDays, daysBetween: daysBetween, iso: iso,
     payments: payments, clients: clients, clientNames: clientNames,
     addClient: function (n, e, t) { load(); var r = addClient(n, e, t); save(); return r; },
+    relances: relances, allRelances: allRelances, addRelance: addRelance,
     addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, deletePayment: deletePayment,
     monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm
   };

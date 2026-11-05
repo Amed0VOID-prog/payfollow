@@ -235,21 +235,11 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 <aside class="dr" id="dr" role="dialog" aria-modal="true" aria-label="Détail du paiement" hidden></aside>
 <div class="toast" id="toast" role="status"></div>
 
+<script src="payfollow-data.js"></script>
 <script>(function(){
   var CUR={EUR:{s:"€",d:2},XOF:{s:"FCFA",d:0}},cur="EUR",tab="j";
   try{var sv=localStorage.getItem("pf_devise");if(sv&&CUR[sv])cur=sv;}catch(e){}
-var P = [
-    ["Agence Nafa","Site vitrine",2400,"2026-10-28","paid"],["Studio Kora","Charte graphique",800,"2026-10-25","paid"],
-    ["Studio Okapi","Photos produits",800,"2026-10-20","paid"],["Maison Bissa","Campagne réseaux",2200,"2026-10-17","paid"],
-    ["Kandé Conseil","Audit",2700,"2026-10-03","paid"],["Studio Okapi","Logo",2000,"2026-09-28","paid"],
-    ["Boutique Lumière","Catalogue",1800,"2026-09-28","paid"],["Maison Bissa","Site e-commerce",2000,"2026-09-01","paid"],
-    ["Atelier Sahel","Affiches",1200,"2026-08-08","paid"],
-    ["Studio Kora","Refonte du site",1800,"2026-10-19","late",[{a:600,d:"2026-09-30"}]],["Boutique Lumière","Photos boutique",650,"2026-10-18","late"],
-    ["Agence Nafa","Maintenance",900,"2026-10-14","late"],["Atelier Sahel","Flyers",450,"2026-10-12","late"],
-    ["Kandé Conseil","Formation",1350,"2026-11-20","wait"],["Maison Bissa","Newsletter",2400,"2026-11-15","wait",[{a:400,d:"2026-09-15"}]],
-    ["Studio Kora","Vidéo promo",1800,"2026-11-12","wait"],["Café Zaka","Menu et affiches",1500,"2026-11-08","wait"],
-    ["Agence Nafa","Application mobile",2600,"2026-11-05","wait"]
-  ].map(function(x){ return {c:x[0],l:x[1],a:x[2],d:x[3],s:x[4],v:x[5]||(x[4]==="paid"?[{a:x[2],d:x[3]}]:[])}; });
+var P = PF.payments();
   var TINT=[["#1f7a3d","#e8f3ec"],["#1d4ed8","#e6eefc"],["#b45309","#fef3e2"],["#7c3aed","#efe9fd"],["#be185d","#fce8f1"]];
   var $=function(i){return document.getElementById(i)};
   function fmt(n){var c=CUR[cur];return n.toLocaleString("fr-FR",{minimumFractionDigits:c.d,maximumFractionDigits:c.d})+"\u00a0"+c.s}
@@ -262,7 +252,7 @@ var P = [
   var V=[];P.forEach(function(p){p.v.forEach(function(v){V.push({c:p.c,l:p.l,a:v.a,d:v.d})})});V.sort(function(a,b){return a.d<b.d?1:-1});
   function sum(k){return V.filter(function(v){return ago(v.d)<k}).reduce(function(t,v){return t+v.a},0)}
   $("hs").innerHTML=[[7,"7 jours"],[30,"30 jours"],[90,"90 jours"]].map(function(x){return'<div class="sc grn"><div class="t">'+x[1]+'</div><div class="s">Encaissé</div><span class="v">'+fmt0(sum(x[0]))+'</span></div>'}).join("");
-  var J=[];P.forEach(function(p){var f=p.v.length?p.v[0].d:p.d;J.push({t:"Paiement créé – "+p.c+" ("+fmt0(p.a)+")",d:shift(f,p.s==="paid"?12:20)});p.v.forEach(function(v){J.push({t:"Versement de "+fmt0(v.a)+" reçu – "+p.c,d:v.d})})});
+  var J=[];P.forEach(function(p){if(!p.x)return;J.push({t:"Paiement créé – "+p.c+" ("+fmt0(p.a)+")",d:p.k});p.v.forEach(function(v){if(!v.r)J.push({t:"Versement de "+fmt0(v.a)+" reçu – "+p.c,d:v.d})})});
   var L=[];try{L=JSON.parse(localStorage.getItem("pf_journal")||"[]")}catch(e){}
   J=L.concat(J.sort(function(a,b){return a.d<b.d?1:-1}).slice(0,24));
   var T=[["r","Reçus"],["w","En attente"],["l","En retard"],["j","Journal"]];

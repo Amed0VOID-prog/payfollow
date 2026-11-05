@@ -261,26 +261,20 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 </nav>
 
 <div class="toast" id="toast" role="status"></div>
+<script src="payfollow-data.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 (function(){
   var CUR={EUR:{s:"€",d:2},XOF:{s:"FCFA",d:0}},cur="EUR";
   try{var sv=localStorage.getItem("pf_devise");if(sv&&CUR[sv])cur=sv;}catch(e){}
-  /* Données fictives, identiques à la page Paiements */
-  var P = [
-    ["Agence Nafa","Site vitrine",2400,"2026-10-28","paid"],["Studio Kora","Charte graphique",800,"2026-10-25","paid"],
-    ["Studio Okapi","Photos produits",800,"2026-10-20","paid"],["Maison Bissa","Campagne réseaux",2200,"2026-10-17","paid"],
-    ["Kandé Conseil","Audit",2700,"2026-10-03","paid"],["Studio Okapi","Logo",2000,"2026-09-28","paid"],
-    ["Boutique Lumière","Catalogue",1800,"2026-09-28","paid"],["Maison Bissa","Site e-commerce",2000,"2026-09-01","paid"],
-    ["Atelier Sahel","Affiches",1200,"2026-08-08","paid"],
-    ["Studio Kora","Refonte du site",1800,"2026-10-19","late",[{a:600,d:"2026-09-30"}]],["Boutique Lumière","Photos boutique",650,"2026-10-18","late"],
-    ["Agence Nafa","Maintenance",900,"2026-10-14","late"],["Atelier Sahel","Flyers",450,"2026-10-12","late"],
-    ["Kandé Conseil","Formation",1350,"2026-11-20","wait"],["Maison Bissa","Newsletter",2400,"2026-11-15","wait",[{a:400,d:"2026-09-15"}]],
-    ["Studio Kora","Vidéo promo",1800,"2026-11-12","wait"],["Café Zaka","Menu et affiches",1500,"2026-11-08","wait"],
-    ["Agence Nafa","Application mobile",2600,"2026-11-05","wait"]
-  ].map(function(x){ return {c:x[0],l:x[1],a:x[2],d:x[3],s:x[4],v:x[5]||(x[4]==="paid"?[{a:x[2],d:x[3]}]:[])}; });
-  
-  var R=[{c:"Atelier Sahel",l:"Flyers",r:450,d:"2026-10-26",n:"1re relance"}];
+  /* Données réelles (payfollow-data.js) */
+  var P = PF.payments().map(function(p){ return {c:p.c,l:p.l,a:p.a,d:p.d,s:p.s,v:p.v}; });
+  var byId = {}; PF.payments().forEach(function(p){ byId[p.id] = p; });
+  var LV = ["1re relance","2e relance","Dernier rappel"];
+  var R = PF.allRelances().map(function(x){
+    var p = byId[x.id], got = p ? p.v.reduce(function(t,v){return t+v.a;},0) : 0;
+    return {c:x.c,l:x.l,r:p ? Math.max(0,p.a-got) : 0,d:x.d,n:LV[x.n]};
+  });
   var ST={late:"En retard",wait:"En attente",paid:"Payé"},per="all";
   var $=function(id){return document.getElementById(id);};
   function iso(dt){return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
@@ -293,7 +287,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   function data(k){
     if(k==="pay")return P.filter(function(p){return inR(p.d);});
     if(k==="rel")return R.filter(function(r){return inR(r.d);});
-    var m={};P.forEach(function(p){var c=m[p.c]||(m[p.c]={c:p.c,n:0,t:0,g:0,late:0});c.n++;c.t+=p.a;c.g+=got(p);if(p.s==="late")c.late++;});
+    var m={};PF.clientNames().forEach(function(n){m[n]={c:n,n:0,t:0,g:0,late:0};});P.forEach(function(p){var c=m[p.c]||(m[p.c]={c:p.c,n:0,t:0,g:0,late:0});c.n++;c.t+=p.a;c.g+=got(p);if(p.s==="late")c.late++;});
     return Object.keys(m).sort().map(function(k){return m[k];});
   }
   function rows(k){var D=data(k),d=code();
