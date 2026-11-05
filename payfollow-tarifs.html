@@ -1,31 +1,74 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light">
-<title>PayFollow – Tarifs</title>
-<link rel="stylesheet" href="payfollow-site.css"><script>document.documentElement.className="js"</script></head><body>
+<title>PayFollow – Tarifs</title><meta name="description" content="PayFollow te montre qui a payé, qui est en retard, et prépare la relance pour toi.">
+<style>
+:root{--g:#1f7a3d;--gd:#176330;--gp:#e8f3ec;--navy:#10193a;--mut:#5d6a64;--line:#e1e7e4;--bg:#f3f6f4;--red:#c62828;--amb:#b45309}
+*{box-sizing:border-box}html{color-scheme:light;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--navy);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5;-webkit-text-size-adjust:100%;overflow-x:hidden}
+a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}:focus-visible{outline:3px solid rgba(31,122,61,.45);outline-offset:2px}
+.w{max-width:1080px;margin:0 auto;padding:0 16px}
+.nav{position:sticky;top:10px;z-index:20;margin:10px auto 0;max-width:1048px;width:calc(100% - 24px);display:flex;align-items:center;justify-content:space-between;padding:8px 8px 8px 16px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:99px;box-shadow:0 8px 24px rgba(16,25,58,.08)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px;letter-spacing:-.02em}.brand b{color:var(--g)}.brand svg{width:30px;height:30px;color:var(--g)}
+.nav nav{display:flex;align-items:center;gap:4px}.nav nav a:not(.btn){padding:8px 12px;font-weight:600;color:var(--mut)}
+.btn{display:inline-grid;place-items:center;height:50px;padding:0 26px;border-radius:99px;background:var(--g);color:#fff;font-weight:700;border:0;box-shadow:0 10px 22px rgba(31,122,61,.22);transition:background .2s,transform .2s}.btn:hover{background:var(--gd);transform:translateY(-1px)}
+.btn{white-space:nowrap}.btn.sm{height:40px;padding:0 16px;font-size:14px;box-shadow:none}.nav nav a:not(.btn){padding:8px 10px}.btn.ghost{background:#fff;color:var(--g);border:1.5px solid var(--g);box-shadow:none}
+.hero{margin-top:12px;border-radius:30px;text-align:center;padding:48px 20px 96px;background:radial-gradient(ellipse at 20% 0%,#cfeadb 0,transparent 55%),radial-gradient(ellipse at 90% 30%,#e3f1ea 0,transparent 50%),#f9fcfa;border:1px solid var(--line)}
+h1{font-size:clamp(32px,8vw,58px);line-height:1.06;letter-spacing:-.035em;margin:0 auto 14px;max-width:720px}h1 em{font-style:normal;color:var(--g)}
+h2{font-size:clamp(25px,5vw,36px);letter-spacing:-.025em;line-height:1.15;margin:0 0 8px}.lead{font-size:18px;color:var(--mut);margin:0 auto 24px;max-width:520px}
+.cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.card{background:#fff;border-radius:22px;padding:20px;box-shadow:0 1px 2px rgba(16,25,58,.05),0 12px 30px rgba(16,25,58,.07)}
+.demo{position:relative;z-index:2;max-width:380px;margin:-62px auto 0;text-align:left}
+.row{display:flex;align-items:center;gap:12px}.av{width:44px;height:44px;border-radius:50%;background:#e6eefc;color:#1d4ed8;display:grid;place-items:center;font-weight:800;flex:none}
+.demo b{display:block}.demo small,.sub{color:var(--mut)}.pill{margin-left:auto;font-size:12px;font-weight:700;padding:4px 11px;border-radius:99px;background:#fdecea;color:var(--red);transition:all .4s}.demo.paid .pill{background:var(--gp);color:var(--gd)}
+.amt{font-size:32px;font-weight:800;letter-spacing:-.025em;margin:14px 0 8px;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:9px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;width:40%;background:var(--g);border-radius:9px;transition:width .9s cubic-bezier(.2,.7,.2,1)}.demo.paid .bar i{width:100%}
+.toast{margin-top:12px;padding:9px 13px;border-radius:12px;background:var(--gp);color:var(--gd);font-weight:600;font-size:14px;opacity:0;transform:translateY(6px);transition:all .4s}.demo.paid .toast{opacity:1;transform:none}
+section{padding:40px 0}.c{text-align:center}.grid{display:grid;gap:12px;margin-top:20px}
+.sc{border:1.5px solid var(--line);background:#fff;border-radius:22px;padding:16px 18px;text-align:left}.sc.red{background:#fde8e8;border-color:#d83a34}.sc.grn{background:#e8f4ec;border-color:#1f9a57}
+.sc .t{font-weight:700}.sc .s{color:var(--mut);font-size:14px}.sc .v{display:block;font-size:30px;font-weight:800;letter-spacing:-.025em;margin-top:6px;font-variant-numeric:tabular-nums}
+.car{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 16px 16px;margin:14px -16px 0;scrollbar-width:none}.car::-webkit-scrollbar{display:none}
+.car .card{flex:0 0 80%;scroll-snap-align:center;text-align:left}.car h3,.plan h3{margin:10px 0 4px;font-size:19px}.car p{margin:0;color:var(--mut)}
+.ic{width:46px;height:46px;border-radius:50%;background:var(--gp);color:var(--g);display:grid;place-items:center;font-weight:800;font-size:20px}
+.steps{list-style:none;margin:20px auto 0;padding:22px;max-width:520px;display:grid;gap:18px;text-align:left}.steps li{display:flex;gap:14px;align-items:center;font-weight:600}
+.steps li::before{counter-increment:s;content:counter(s);flex:none;width:38px;height:38px;border-radius:50%;background:var(--line);color:var(--mut);display:grid;place-items:center;font-weight:800;transition:all .5s}.steps{counter-reset:s}.steps li.in::before{background:var(--g);color:#fff}
+.offer{background:var(--navy);color:#fff;border-radius:28px;padding:32px 22px;text-align:center}.offer p{color:#c9d3ce;max-width:460px;margin:0 auto 20px}.offer .btn{background:#fff;color:var(--gd);box-shadow:none}
+.mini{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:18px 0}.mini span{background:#fff;border:1.5px solid var(--line);border-radius:99px;padding:8px 16px;font-weight:700}.mini span b{color:var(--g)}
+.price{font-size:38px;font-weight:800;letter-spacing:-.03em}.price small{font-size:15px;font-weight:600;color:var(--mut)}
+.plan ul{list-style:none;padding:0;margin:14px 0 18px;display:grid;gap:8px}.plan li{padding-left:26px;position:relative}.plan li::before{content:"✓";position:absolute;left:0;color:var(--g);font-weight:800}
+.plan.hot{border:2px solid var(--g)}.tag{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--gp);color:var(--gd)}.tag.soon{background:#fef3e2;color:var(--amb)}
+.tg{display:inline-flex;background:#fff;border:1.5px solid var(--line);border-radius:99px;padding:3px;margin-top:4px}.tg button{border:0;background:none;padding:8px 18px;border-radius:99px;font-weight:700;color:var(--mut)}.tg button[aria-pressed=true]{background:var(--g);color:#fff}
+details{background:#fff;border-radius:16px;padding:14px 16px;margin-top:10px}summary{font-weight:700;cursor:pointer}details p{margin:8px 0 0;color:var(--mut)}
+footer{padding:20px 0 40px;color:var(--mut);font-size:14px}footer .w{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between}
+.js .rv{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s cubic-bezier(.2,.7,.2,1)}.js .rv.in{opacity:1;transform:none}
+@media(min-width:800px){.hero{padding:72px 20px 110px}.grid.g3{grid-template-columns:repeat(3,1fr)}.car{overflow:visible;margin:20px 0 0;padding:0}.car .card{flex:1}section{padding:56px 0}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto}.js .rv{opacity:1;transform:none}}
+</style><script>document.documentElement.className="js"</script></head><body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="0 0 40 40"><path d="M8 11.5 25 6.5l2.2 5.3H8z" fill="currentColor" opacity=".7" transform="rotate(-8 8 11)"/><rect x="4" y="12" width="32" height="23" rx="5" fill="currentColor"/><rect x="22" y="19" width="14" height="9" rx="4.5" fill="#fff"/><circle cx="27" cy="23.5" r="1.8" fill="currentColor"/></symbol></svg>
-<header><div class="wrap"><a class="brand" href="payfollow-accueil.html"><svg><use href="#lg"/></svg><span>Pay<b>Follow</b></span></a><nav><a href="payfollow-accueil.html">Accueil</a><a class="btn sm" href="payfollow-connexion-v2.html">Se connecter</a></nav></div></header>
-<main>
-<section class="wrap c"><h1>Des tarifs simples</h1><p class="lead">Commence gratuitement. Passe à Pro quand tu en as besoin.</p>
-<div class="tg" role="group" aria-label="Devise"><button data-c="EUR" aria-pressed="true">€ Euro</button><button data-c="XOF" aria-pressed="false">FCFA</button></div></section>
-<section class="wrap"><div class="card offer rv" style="padding:16px 20px;text-align:center"><b>Testeurs : 3 mois du pack Pro offerts</b> <span style="color:#c9d3ce">· 10 places, accompagnement personnel</span></div>
+<div class="nav"><a class="brand" href="payfollow-accueil.html"><svg><use href="#lg"/></svg><span>Pay<b>Follow</b></span></a><nav><a href="payfollow-accueil.html">Accueil</a><a class="btn sm" href="payfollow-connexion-v2.html">Se connecter</a></nav></div>
+<main class="w">
+<div class="hero" style="padding-bottom:40px"><h1>Des tarifs simples</h1><p class="lead">Commence gratuitement. Passe à Pro quand tu en as besoin.</p>
+<div class="tg" role="group" aria-label="Devise"><button data-c="EUR" aria-pressed="true">€ Euro</button><button data-c="XOF" aria-pressed="false">FCFA</button></div></div>
+<section style="padding-top:24px"><div class="offer rv" style="padding:16px 20px;border-radius:20px"><b>Testeurs : 3 mois du pack Pro offerts</b> <span style="color:#c9d3ce">· 10 places, accompagnement personnel</span></div>
 <div class="grid g3">
-<div class="card plan rv"><h2>Gratuit</h2><div class="price"><span data-p="0">0 €</span></div><ul><li>Clients et paiements</li><li>Versements partiels</li><li>Messages de relance prêts</li><li>Export des paiements</li></ul><a class="btn ghost" style="width:100%" href="payfollow-connexion-v2.html">Commencer</a></div>
-<div class="card plan hot rv"><span class="tag">Le plus choisi</span><h2>Pro</h2><div class="price"><span data-p="4">4 €</span> <small>/mois</small></div><ul><li>Tout le pack Gratuit</li><li>Exports Clients et Relances</li><li>Historique complet</li><li>Modèles de relance personnalisables</li><li>Tableau de bord avancé</li></ul><a class="btn" style="width:100%" href="payfollow-connexion-v2.html">Essayer 3 mois offerts</a></div>
-<div class="card plan rv"><span class="tag soon">Bientôt</span><h2>Premium</h2><div class="price"><span data-p="9">9 €</span> <small>/mois</small></div><ul><li>Tout le pack Pro</li><li>Relances automatiques</li><li>Notifications : qui est en retard, de combien, relance envoyée</li></ul><a class="btn ghost" style="width:100%" href="mailto:kaboreabdoulakim70@gmail.com?subject=Premium%20PayFollow">Me prévenir</a></div>
-</div></section>
-<section class="wrap"><h2 class="rv">Questions fréquentes</h2>
+<div class="card plan rv"><h3>Gratuit</h3><div class="price"><span data-p="0">0 €</span></div><ul><li>Clients et paiements</li><li>Versements partiels</li><li>Messages de relance prêts</li><li>Export des paiements</li></ul><a class="btn ghost" style="width:100%" href="payfollow-connexion-v2.html">Commencer</a></div>
+<div class="card plan hot rv"><span class="tag">Le plus choisi</span><h3>Pro</h3><div class="price"><span data-p="4">4 €</span> <small>/mois</small></div><ul><li>Tout le pack Gratuit</li><li>Exports Clients et Relances</li><li>Historique complet</li><li>Modèles de relance personnalisables</li><li>Tableau de bord avancé</li></ul><a class="btn" style="width:100%" href="payfollow-connexion-v2.html">Essayer 3 mois offerts</a></div>
+<div class="card plan rv"><span class="tag soon">Bientôt</span><h3>Premium</h3><div class="price"><span data-p="9">9 €</span> <small>/mois</small></div><ul><li>Tout le pack Pro</li><li>Relances automatiques</li><li>Notifications : qui est en retard, de combien, relance envoyée</li></ul><a class="btn ghost" style="width:100%" href="mailto:kaboreabdoulakim70@gmail.com?subject=Premium%20PayFollow">Me prévenir</a></div></div></section>
+<section><h2 class="rv">Questions fréquentes</h2>
 <details class="rv"><summary>Comment annuler ?</summary><p>À tout moment, sans engagement.</p></details>
 <details class="rv"><summary>Comment payer ?</summary><p>Pendant l’essai, rien à payer. Les moyens de paiement (carte, mobile money) seront précisés avant la fin de l’essai.</p></details>
 <details class="rv"><summary>Dans quelle devise ?</summary><p>Tu choisis ta devise, une seule par compte. Euro par défaut, FCFA aussi disponible.</p></details>
 <details class="rv"><summary>Que deviennent mes données si je pars ?</summary><p>Tu peux exporter tes paiements vers Excel avant de partir.</p></details></section>
 </main>
-<footer><div class="wrap"><span>© PayFollow</span><span><a href="payfollow-conditions.html">Conditions d’utilisation</a> · <a href="payfollow-confidentialite.html">Confidentialité</a> · <a href="mailto:kaboreabdoulakim70@gmail.com">Contact</a></span></div></footer>
+<footer><div class="w"><span>© PayFollow</span><span><a href="payfollow-conditions.html">Conditions d’utilisation</a> · <a href="payfollow-confidentialite.html">Confidentialité</a> · <a href="mailto:kaboreabdoulakim70@gmail.com">Contact</a></span></div></footer>
 <script>
-(function(){var io=window.IntersectionObserver&&new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add("in");io.unobserve(x.target)}})},{threshold:.1});
-document.querySelectorAll(".rv").forEach(function(el){io?io.observe(el):el.classList.add("in")});
+(function(){var rm=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function f(n,u){return Math.round(n).toLocaleString("fr-FR")+(u||"")}
+function cnt(el){var to=+el.dataset.to,u=el.dataset.u||"";if(rm){el.textContent=f(to,u);return}var t0=performance.now();(function s(t){var k=Math.min((t-t0)/1100,1);el.textContent=f(to*(1-Math.pow(1-k,3)),u);if(k<1)requestAnimationFrame(s)})(t0)}
+function show(t){t.classList.add("in");t.querySelectorAll("[data-to]").forEach(cnt)}
+var io=window.IntersectionObserver&&new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){show(x.target);io.unobserve(x.target)}})},{threshold:.15});
+document.querySelectorAll(".rv").forEach(function(el){io?io.observe(el):show(el)});
 var X={0:"0 FCFA",4:"2\u00a0600 FCFA",9:"5\u00a0900 FCFA"},cur="EUR";try{cur=localStorage.getItem("pf_devise")==="XOF"?"XOF":"EUR"}catch(e){}
-function set(c){cur=c;document.querySelectorAll(".tg button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.c===c)});
-document.querySelectorAll("[data-p]").forEach(function(s){var n=+s.dataset.p;s.textContent=c==="XOF"?X[n]:n+"\u00a0€"});try{localStorage.setItem("pf_devise",c)}catch(e){}}
+function set(c){document.querySelectorAll(".tg button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.c===c)});document.querySelectorAll("[data-p]").forEach(function(s){var n=+s.dataset.p;s.textContent=c==="XOF"?X[n]:n+"\u00a0€"});try{localStorage.setItem("pf_devise",c)}catch(e){}}
 document.querySelector(".tg").addEventListener("click",function(e){var b=e.target.closest("button");if(b)set(b.dataset.c)});set(cur);
 })();
 </script></body></html>

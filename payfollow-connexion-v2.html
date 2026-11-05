@@ -78,6 +78,9 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
   [data-mode="login"] .ov-b,[data-mode="signup"] .ov-a{opacity:0;pointer-events:none;visibility:hidden}
 }
 @media (prefers-reduced-motion:reduce){.ov,.panel,.ovt{transition:none!important}}
+.hm{color:#fff;text-transform:none;letter-spacing:0;font-size:14px;margin-right:16px}
+.hn{display:none}
+@media (min-width:860px){.hn{display:flex;gap:18px;position:fixed;top:16px;left:22px;z-index:5;font-size:14px}.hn a{color:var(--mut)}}
 </style>
 </head>
 <body>
@@ -93,8 +96,10 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
 <header class="top">
   <div class="brand"><svg><use href="#logo"/></svg><span class="w"><b>Pay</b><i>Follow</i></span></div>
   <p class="tag">Suivi des paiements • Relances • Sérénité</p>
+  <p class="tag" style="margin-top:16px"><a class="hm" href="payfollow-accueil.html">← Accueil</a><a class="hm" href="payfollow-tarifs.html">Tarifs</a></p>
 </header>
 
+<nav class="hn" aria-label="Site"><a href="payfollow-accueil.html">← Accueil</a><a href="payfollow-tarifs.html">Tarifs</a></nav>
 <main class="card" id="card" data-mode="login">
 
   <section class="panel p-login" aria-labelledby="t-login">
