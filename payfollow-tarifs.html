@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light">
+<title>PayFollow – Tarifs</title>
+<link rel="stylesheet" href="payfollow-site.css"><script>document.documentElement.className="js"</script></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="0 0 40 40"><path d="M8 11.5 25 6.5l2.2 5.3H8z" fill="currentColor" opacity=".7" transform="rotate(-8 8 11)"/><rect x="4" y="12" width="32" height="23" rx="5" fill="currentColor"/><rect x="22" y="19" width="14" height="9" rx="4.5" fill="#fff"/><circle cx="27" cy="23.5" r="1.8" fill="currentColor"/></symbol></svg>
+<header><div class="wrap"><a class="brand" href="payfollow-accueil.html"><svg><use href="#lg"/></svg><span>Pay<b>Follow</b></span></a><nav><a href="payfollow-accueil.html">Accueil</a><a class="btn sm" href="payfollow-connexion-v2.html">Se connecter</a></nav></div></header>
+<main>
+<section class="wrap c"><h1>Des tarifs simples</h1><p class="lead">Commence gratuitement. Passe à Pro quand tu en as besoin.</p>
+<div class="tg" role="group" aria-label="Devise"><button data-c="EUR" aria-pressed="true">€ Euro</button><button data-c="XOF" aria-pressed="false">FCFA</button></div></section>
+<section class="wrap"><div class="card offer rv" style="padding:16px 20px;text-align:center"><b>Testeurs : 3 mois du pack Pro offerts</b> <span style="color:#c9d3ce">· 10 places, accompagnement personnel</span></div>
+<div class="grid g3">
+<div class="card plan rv"><h2>Gratuit</h2><div class="price"><span data-p="0">0 €</span></div><ul><li>Clients et paiements</li><li>Versements partiels</li><li>Messages de relance prêts</li><li>Export des paiements</li></ul><a class="btn ghost" style="width:100%" href="payfollow-connexion-v2.html">Commencer</a></div>
+<div class="card plan hot rv"><span class="tag">Le plus choisi</span><h2>Pro</h2><div class="price"><span data-p="4">4 €</span> <small>/mois</small></div><ul><li>Tout le pack Gratuit</li><li>Exports Clients et Relances</li><li>Historique complet</li><li>Modèles de relance personnalisables</li><li>Tableau de bord avancé</li></ul><a class="btn" style="width:100%" href="payfollow-connexion-v2.html">Essayer 3 mois offerts</a></div>
+<div class="card plan rv"><span class="tag soon">Bientôt</span><h2>Premium</h2><div class="price"><span data-p="9">9 €</span> <small>/mois</small></div><ul><li>Tout le pack Pro</li><li>Relances automatiques</li><li>Notifications : qui est en retard, de combien, relance envoyée</li></ul><a class="btn ghost" style="width:100%" href="mailto:kaboreabdoulakim70@gmail.com?subject=Premium%20PayFollow">Me prévenir</a></div>
+</div></section>
+<section class="wrap"><h2 class="rv">Questions fréquentes</h2>
+<details class="rv"><summary>Comment annuler ?</summary><p>À tout moment, sans engagement.</p></details>
+<details class="rv"><summary>Comment payer ?</summary><p>Pendant l’essai, rien à payer. Les moyens de paiement (carte, mobile money) seront précisés avant la fin de l’essai.</p></details>
+<details class="rv"><summary>Dans quelle devise ?</summary><p>Tu choisis ta devise, une seule par compte. Euro par défaut, FCFA aussi disponible.</p></details>
+<details class="rv"><summary>Que deviennent mes données si je pars ?</summary><p>Tu peux exporter tes paiements vers Excel avant de partir.</p></details></section>
+</main>
+<footer><div class="wrap"><span>© PayFollow</span><span><a href="payfollow-conditions.html">Conditions d’utilisation</a> · <a href="payfollow-confidentialite.html">Confidentialité</a> · <a href="mailto:kaboreabdoulakim70@gmail.com">Contact</a></span></div></footer>
+<script>
+(function(){var io=window.IntersectionObserver&&new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add("in");io.unobserve(x.target)}})},{threshold:.1});
+document.querySelectorAll(".rv").forEach(function(el){io?io.observe(el):el.classList.add("in")});
+var X={0:"0 FCFA",4:"2\u00a0600 FCFA",9:"5\u00a0900 FCFA"},cur="EUR";try{cur=localStorage.getItem("pf_devise")==="XOF"?"XOF":"EUR"}catch(e){}
+function set(c){cur=c;document.querySelectorAll(".tg button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.c===c)});
+document.querySelectorAll("[data-p]").forEach(function(s){var n=+s.dataset.p;s.textContent=c==="XOF"?X[n]:n+"\u00a0€"});try{localStorage.setItem("pf_devise",c)}catch(e){}}
+document.querySelector(".tg").addEventListener("click",function(e){var b=e.target.closest("button");if(b)set(b.dataset.c)});set(cur);
+})();
+</script></body></html>

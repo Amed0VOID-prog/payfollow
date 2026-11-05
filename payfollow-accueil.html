@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light">
+<title>PayFollow – Suis les paiements de tes clients</title>
+<meta name="description" content="PayFollow te montre qui a payé, qui est en retard, et prépare la relance pour toi.">
+<link rel="stylesheet" href="payfollow-site.css"><script>document.documentElement.className="js"</script></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="0 0 40 40"><path d="M8 11.5 25 6.5l2.2 5.3H8z" fill="currentColor" opacity=".7" transform="rotate(-8 8 11)"/><rect x="4" y="12" width="32" height="23" rx="5" fill="currentColor"/><rect x="22" y="19" width="14" height="9" rx="4.5" fill="#fff"/><circle cx="27" cy="23.5" r="1.8" fill="currentColor"/></symbol></svg>
+<header><div class="wrap"><a class="brand" href="payfollow-accueil.html"><svg><use href="#lg"/></svg><span>Pay<b>Follow</b></span></a><nav><a href="payfollow-tarifs.html">Tarifs</a><a class="btn sm" href="payfollow-connexion-v2.html">Se connecter</a></nav></div></header>
+<main>
+<section class="wrap hero"><div>
+<h1>Un client te doit de l’argent ? Ne l’oublie plus.</h1>
+<p class="lead">PayFollow te montre qui a payé, qui est en retard, et prépare la relance pour toi.</p>
+<a class="btn" href="payfollow-connexion-v2.html">Essayer gratuitement</a></div>
+<div class="card demo" id="demo" aria-label="Exemple animé : un client en retard qui paie"><div class="row"><span class="av">S</span><div><b>Studio Kora</b><small>Refonte du site</small></div><span class="pill" id="pill">En retard</span></div>
+<div class="amt" id="amt">1 200 €</div><div class="bar"><i></i></div><div class="toast">✓ Versement de 1 200 € reçu</div></div></section>
+
+<section class="wrap c"><h2 class="rv">Tout ce qu’il te faut, rien de plus</h2>
+<div class="grid g3"><div class="card rv"><div class="ic" style="margin-inline:auto">1</div><h3>Vois tout d’un coup d’œil</h3><p>Qui a payé, qui est en retard, combien il reste à encaisser.</p></div>
+<div class="card rv"><div class="ic" style="margin-inline:auto">2</div><h3>Relance en un clic, sans gêne</h3><p>Un message poli ou ferme est déjà écrit. Tu l’envoies par WhatsApp ou e-mail.</p></div>
+<div class="card rv"><div class="ic" style="margin-inline:auto">3</div><h3>Exporte vers Excel</h3><p>Télécharge tes paiements quand tu veux, lisibles aussi dans Google Sheets.</p></div></div></section>
+
+<section class="wrap"><h2 class="rv">Comment ça marche</h2><ol class="steps card rv" style="padding:22px"><li>Ajoute tes clients.</li><li>Note leurs paiements, même par morceaux.</li><li>Relance ceux qui sont en retard.</li></ol></section>
+
+<section class="wrap"><div class="card offer rv" style="padding:28px"><h2>10 places pour les premiers testeurs</h2><p style="margin:0 0 18px">3 mois du pack Pro offerts, avec un accompagnement personnel pour que l’outil te serve vraiment.</p><a class="btn" href="mailto:kaboreabdoulakim70@gmail.com?subject=Place%20testeur%20PayFollow">Je veux une place</a></div></section>
+
+<section class="wrap c"><h2 class="rv">Pourquoi PayFollow</h2><p class="lead rv">Simple, en français, pensé pour les freelances et les petites agences. Tu choisis ta devise : euro, FCFA et d’autres bientôt.</p>
+<a class="btn ghost rv" href="payfollow-tarifs.html">Voir les tarifs</a></section>
+
+<section class="wrap c"><h2 class="rv">Prêt à ne plus courir après tes paiements ?</h2><a class="btn rv" href="payfollow-connexion-v2.html">Essayer gratuitement</a></section>
+</main>
+<footer><div class="wrap"><span>© PayFollow</span><span><a href="payfollow-conditions.html">Conditions d’utilisation</a> · <a href="payfollow-confidentialite.html">Confidentialité</a> · <a href="mailto:kaboreabdoulakim70@gmail.com">Contact</a></span></div></footer>
+<script>
+(function(){var io=window.IntersectionObserver&&new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add("in");io.unobserve(x.target)}})},{threshold:.15});
+document.querySelectorAll(".rv").forEach(function(el){io?io.observe(el):el.classList.add("in")});
+var d=document.getElementById("demo"),a=document.getElementById("amt"),p=document.getElementById("pill"),f=function(n){return Math.round(n).toLocaleString("fr-FR")+"\u00a0€"};
+if(matchMedia("(prefers-reduced-motion: reduce)").matches){d.classList.add("paid");p.textContent="Payé";a.textContent=f(0);return}
+function count(to){var t0=performance.now(),from=to?0:1200;(function s(t){var k=Math.min((t-t0)/900,1);a.textContent=f(from+(to-from)*k);if(k<1)requestAnimationFrame(s)})(t0)}
+function run(){d.classList.remove("paid");p.textContent="En retard";a.textContent=f(1200);
+setTimeout(function(){d.classList.add("paid");p.textContent="Payé";count(0)},2200);setTimeout(run,6200)}run();
+})();
+</script></body></html>
