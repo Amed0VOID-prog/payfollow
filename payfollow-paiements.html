@@ -355,7 +355,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       '<h3 class="vh">Versements</h3>'+
       (p.v.length ? '<ul class="info vl">'+p.v.slice().reverse().map(function(x){ return '<li><span>'+dayLong(x.d)+'</span><b>'+fmt(x.a)+'</b></li>'; }).join("")+'</ul>' : '<p class="sub">Aucun versement pour l’instant.</p>')+
       (r>0 ? '<button class="go" id="vb">+ Versement</button>' : '')+
-      (p.s==="late" ? '<a class="go2" href="payfollow-relances.html#'+encodeURIComponent(p.c)+'">Préparer une relance</a>' : ''));
+      (p.s==="late" ? '<a class="go2" style="display:grid;place-items:center" href="payfollow-relances.html#'+encodeURIComponent(p.c)+'">Préparer une relance</a>' : ''));
     count($("bg"), p.a, fmt, 900, 100);
     if ($("vb")) $("vb").addEventListener("click", function(){ openVers(i); });
     dr.querySelector("[data-edit]").addEventListener("click", function(){ openEdit(i); });
