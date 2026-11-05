@@ -191,7 +191,32 @@
     db.demo = false; save();
     try { var keep = JSON.parse(localStorage.getItem("pf_nc") || "[]").filter(function (c) { return db.clients.some(function (k) { return norm(k.n) === norm(c.n); }); }); localStorage.setItem("pf_nc", JSON.stringify(keep)); } catch (e) {}
   }
+  /* ---------- Profil : prénom, nom, e-mail, téléphone, activité, entreprise, pays, photo ---------- */
+  var PKEY = "pf_profile";
+  function getProfile() {
+    try { var o = JSON.parse(localStorage.getItem(PKEY) || "null"); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; }
+  }
+  function initial() { var p = getProfile(), s = String(p.p || p.e || "").trim(); return s ? s.charAt(0).toUpperCase() : ""; }
+  /* La pastille du menu (#avatar) montre la photo, ou à défaut l'initiale du prénom, sur toutes les pages. */
+  function paintAvatar() {
+    var a = document.getElementById("avatar"); if (!a) return;
+    var p = getProfile();
+    if (p.ph) {
+      a.textContent = "";
+      a.style.backgroundImage = 'url("' + p.ph + '")'; a.style.backgroundSize = "cover"; a.style.backgroundPosition = "center";
+    } else {
+      a.style.backgroundImage = "";
+      var i = initial(); if (i) a.textContent = i;
+    }
+  }
+  function setProfile(o) {
+    var cur = getProfile(); Object.keys(o || {}).forEach(function (k) { cur[k] = o[k]; });
+    try { localStorage.setItem(PKEY, JSON.stringify(cur)); } catch (e) { return false; }
+    paintAvatar(); return true;
+  }
+
   function banner() {
+    if (document.body && document.body.hasAttribute("data-nobanner")) return;
     if (!isDemo() || document.getElementById("pf-demo")) return;
     var host = document.querySelector("main") || document.body, b = document.createElement("div");
     b.id = "pf-demo";
@@ -203,7 +228,8 @@
       clearDemo(); location.reload();
     });
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", banner); else banner();
+  function boot() { banner(); paintAvatar(); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 
   window.PF = {
     today: today, addDays: addDays, daysBetween: daysBetween, iso: iso,
@@ -212,6 +238,7 @@
     updateClient: updateClient, deleteClient: deleteClient,
     relances: relances, allRelances: allRelances, addRelance: addRelance,
     addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, deletePayment: deletePayment,
-    monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm
+    monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm,
+    profile: getProfile, setProfile: setProfile, initial: initial
   };
 })();

@@ -199,7 +199,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 .cpick button[aria-checked="true"] b{color:var(--gd)}
 </style>
 </head>
-<body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script>
+<body data-nobanner><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="lg" viewBox="0 0 40 40"><path d="M8 11.5 25 6.5l2.2 5.3H8z" fill="currentColor" opacity=".7" transform="rotate(-8 8 11)"/><rect x="4" y="12" width="32" height="23" rx="5" fill="currentColor"/><rect x="22" y="19" width="14" height="9" rx="4.5" fill="var(--cl)"/><circle cx="27" cy="23.5" r="1.8" fill="currentColor"/></symbol>
 </svg>
@@ -221,11 +221,42 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   </div>
 </header>
 
-<main><style>.pc{display:flex;align-items:center;gap:14px;background:#fff;border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(16,25,58,.05),0 10px 26px rgba(16,25,58,.05)}.pc .big2{width:60px;height:60px;border-radius:50%;background:var(--gp);color:var(--g);display:grid;place-items:center;font-size:26px;font-weight:800}.pc h2{margin:0;font-size:20px}.out{display:grid;place-items:center;height:50px;border:1.5px solid var(--line);border-radius:99px;background:#fff;color:var(--red);font-weight:700;text-decoration:none}@media (min-width:900px){#pm{max-width:560px;margin:0 auto}}</style>
-<div id="pm"><div class="top rv"><div><h1>Mon profil</h1><p>Votre compte et vos préférences.</p></div></div>
-<section class="pc rv" style="--i:1"><span class="big2">A</span><div><h2>Amed</h2><span class="sub">Essai gratuit du pack Pro en cours</span></div></section>
-<section class="cpick rv" id="menu" style="--i:2"><h2>Devise de mon compte</h2><div class="sub">Tous les montants du site s’affichent dans cette devise.</div><div class="opts"><button data-cur="EUR" aria-checked="true">Euro <b>€</b></button><button data-cur="XOF" aria-checked="false">Franc CFA <b>FCFA</b></button></div></section>
-<a class="out rv" style="--i:3" href="payfollow-connexion-v2.html">Se déconnecter</a></div></main>
+<main><style>
+.pc{display:flex;align-items:center;gap:16px;background:#fff;border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(16,25,58,.05),0 10px 26px rgba(16,25,58,.05)}
+.pc .big2{width:76px;height:76px;flex:none;border-radius:50%;background:var(--gp) center/cover no-repeat;color:var(--g);display:grid;place-items:center;font-size:30px;font-weight:800;overflow:hidden}
+.pc h2{margin:0;font-size:20px;overflow-wrap:anywhere}
+.pc .pb{display:flex;gap:16px;flex-wrap:wrap;margin-top:4px}
+.lk{border:0;background:none;color:var(--g);font-weight:700;font-size:14px;padding:10px 0;min-height:44px}
+.lk.dg{color:var(--red)}
+.lk[hidden]{display:none}
+.pf{background:#fff;border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(16,25,58,.05),0 10px 26px rgba(16,25,58,.05)}
+.pf h2{margin:0 0 4px;font-size:16px}
+.fm.pf input,.fm.pf select{padding:0 18px}
+.fm.pf select{padding-right:46px}
+.fm.pf input[readonly]{background:var(--bg)!important;color:var(--mut)!important;-webkit-text-fill-color:var(--mut);box-shadow:none}
+.fm.pf .fl .opt{font-weight:500}
+.skip{display:block;text-align:center;margin-top:6px;padding:12px;color:var(--mut);font-weight:600;font-size:15px}
+.skip[hidden]{display:none}
+.out{display:grid;place-items:center;height:50px;border:1.5px solid var(--line);border-radius:99px;background:#fff;color:var(--red);font-weight:700;text-decoration:none}
+@media (min-width:900px){#pm{max-width:560px;margin:0 auto}}
+</style>
+<div id="pm"><div class="top rv"><div><h1 id="ptitle">Mon profil</h1><p id="psub">Votre compte et vos préférences.</p></div></div>
+<section class="pc rv" style="--i:1"><span class="big2" id="bigav" aria-hidden="true"></span><div><h2 id="pname">Mon compte</h2><span class="sub">Essai gratuit du pack Pro en cours</span><div class="pb"><button type="button" class="lk" id="chg">Changer la photo</button><button type="button" class="lk dg" id="rmv" hidden>Retirer</button></div></div><input type="file" id="file" accept="image/*" hidden></section>
+<section class="cpick rv" id="cur" style="--i:2"><h2>Devise de mon compte</h2><div class="sub">Tous les montants du site s’affichent dans cette devise.</div><div class="opts"><button type="button" data-cur="EUR" aria-checked="true">Euro <b>€</b></button><button type="button" data-cur="XOF" aria-checked="false">Franc CFA <b>FCFA</b></button></div></section>
+<form class="pf fm rv" id="pform" style="--i:3" novalidate>
+<h2>Mes informations</h2>
+<label class="fl" for="f-p">Prénom</label><div class="f"><input id="f-p" type="text" autocomplete="given-name" maxlength="40" placeholder="Prénom"></div>
+<label class="fl" for="f-n">Nom</label><div class="f"><input id="f-n" type="text" autocomplete="family-name" maxlength="40" placeholder="Nom"></div>
+<label class="fl" for="f-e">Adresse e-mail</label><div class="f"><input id="f-e" type="email" readonly placeholder="Adresse e-mail"></div>
+<label class="fl" for="f-t">WhatsApp ou téléphone <span class="opt">(facultatif)</span></label><div class="f"><input id="f-t" type="tel" inputmode="tel" autocomplete="tel" maxlength="24" placeholder="+226 70 00 00 00"></div>
+<label class="fl" for="f-a">Activité <span class="opt">(facultatif)</span></label><div class="f"><input id="f-a" type="text" maxlength="60" placeholder="Graphiste, développeur, agence…"></div>
+<label class="fl" for="f-o">Entreprise ou agence <span class="opt">(facultatif)</span></label><div class="f"><input id="f-o" type="text" autocomplete="organization" maxlength="60" placeholder="Nom de votre structure"></div>
+<label class="fl" for="f-y">Pays</label><div class="f"><select id="f-y"><option value="">Choisir un pays</option><option>Burkina Faso</option><option>Côte d’Ivoire</option><option>Mali</option><option>Sénégal</option><option>Niger</option><option>Togo</option><option>Bénin</option><option>Guinée</option><option>Cameroun</option><option>France</option><option>Belgique</option><option>Suisse</option><option>Canada</option><option>Autre</option></select><svg class="ic r" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div>
+<p class="err" id="perr" role="alert"></p>
+<button class="go" type="submit" id="psave">Enregistrer</button>
+<a class="skip" id="skip" href="payfollow-tableau-de-bord.html" hidden>Passer pour l’instant</a>
+</form>
+<a class="out rv" style="--i:4" href="payfollow-connexion-v2.html">Se déconnecter</a></div></main>
 
 <nav class="tb" aria-label="Navigation">
   <a href="payfollow-tableau-de-bord.html"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</a>
@@ -239,8 +270,55 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 <aside class="dr" id="dr" role="dialog" aria-modal="true" aria-label="Détail du paiement" hidden></aside>
 <div class="toast" id="toast" role="status"></div>
 
-<script>(function(){var m=document.getElementById("menu"),c="EUR";try{c=localStorage.getItem("pf_devise")||"EUR"}catch(e){}
+<script src="payfollow-data.js"></script>
+<script>(function(){
+var $=function(i){return document.getElementById(i)};
+var tt;function toast(t){var e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){e.classList.remove("on")},2200)}
+
+/* Devise */
+var m=$("cur"),c="EUR";try{c=localStorage.getItem("pf_devise")||"EUR"}catch(e){}
 function mk(){m.querySelectorAll("[data-cur]").forEach(function(b){b.setAttribute("aria-checked",b.dataset.cur===c?"true":"false")})}
-m.addEventListener("click",function(e){var b=e.target.closest("[data-cur]");if(!b)return;c=b.dataset.cur;try{localStorage.setItem("pf_devise",c)}catch(x){}mk()});mk();var ind=document.getElementById("ind");function moveInd(){var b=document.querySelector('#tabs [aria-current="page"]');if(!b||!b.offsetWidth){ind.style.opacity=0;return}ind.style.opacity=1;ind.style.width=b.offsetWidth+"px";ind.style.transform="translateX("+b.offsetLeft+"px)"}window.addEventListener("resize",moveInd);moveInd();requestAnimationFrame(function(){ind.classList.add("ready")});if(document.fonts&&document.fonts.ready)document.fonts.ready.then(moveInd);})();</script>
+m.addEventListener("click",function(e){var b=e.target.closest("[data-cur]");if(!b)return;c=b.dataset.cur;try{localStorage.setItem("pf_devise",c)}catch(x){}mk();toast("Devise modifiée")});mk();
+
+/* Profil */
+var P=PF.profile(),welcome=!!P.new;
+var USER='<svg class="ic" viewBox="0 0 24 24" style="width:32px;height:32px"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>';
+function paint(){var p=PF.profile(),b=$("bigav");
+ if(p.ph){b.innerHTML="";b.style.backgroundImage='url("'+p.ph+'")'}
+ else{b.style.backgroundImage="";var i=PF.initial();if(i)b.textContent=i;else b.innerHTML=USER}
+ $("rmv").hidden=!p.ph;
+ $("pname").textContent=((p.p||"")+" "+(p.n||"")).trim()||"Mon compte"}
+$("f-p").value=P.p||"";$("f-n").value=P.n||"";$("f-e").value=P.e||"";$("f-t").value=P.t||"";$("f-a").value=P.a||"";$("f-o").value=P.o||"";$("f-y").value=P.y||"";
+if(welcome){$("ptitle").textContent="Complétez votre profil";$("psub").textContent="Ajoutez vos informations pour personnaliser PayFollow.";$("psave").textContent="Enregistrer et continuer";$("skip").hidden=false}
+paint();
+
+/* Photo : recadrée au carré et réduite pour rester légère dans le navigateur */
+$("chg").addEventListener("click",function(){$("file").click()});
+$("file").addEventListener("change",function(){var f=this.files&&this.files[0];this.value="";if(!f)return;
+ if(!/^image\//.test(f.type)){toast("Choisissez une image (JPG, PNG…).");return}
+ var rd=new FileReader();
+ rd.onerror=function(){toast("Cette image ne peut pas être lue.")};
+ rd.onload=function(){var im=new Image();
+  im.onerror=function(){toast("Cette image ne peut pas être lue.")};
+  im.onload=function(){var s=Math.min(im.width,im.height),S=320,cv=document.createElement("canvas");cv.width=cv.height=S;
+   cv.getContext("2d").drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,S,S);
+   if(PF.setProfile({ph:cv.toDataURL("image/jpeg",.85)})){paint();toast("Photo mise à jour")}else toast("Photo impossible à enregistrer.")};
+  im.src=rd.result};
+ rd.readAsDataURL(f)});
+$("rmv").addEventListener("click",function(){PF.setProfile({ph:""});paint();toast("Photo retirée")});
+
+/* Enregistrer */
+function bad(id,t){var e=$(id);e.setAttribute("aria-invalid","true");e.focus();$("perr").textContent=t}
+$("pform").addEventListener("submit",function(ev){ev.preventDefault();
+ ["f-p","f-t"].forEach(function(i){$(i).removeAttribute("aria-invalid")});$("perr").textContent="";
+ var v={p:$("f-p").value.trim(),n:$("f-n").value.trim(),t:$("f-t").value.trim(),a:$("f-a").value.trim(),o:$("f-o").value.trim(),y:$("f-y").value,"new":false};
+ if(!v.p)return bad("f-p","Entrez votre prénom.");
+ var d=v.t.replace(/\D/g,"");if(v.t&&(d.length<8||d.length>15))return bad("f-t","Entrez un numéro valide, par exemple +226 70 00 00 00.");
+ if(!PF.setProfile(v)){$("perr").textContent="Impossible d’enregistrer sur cet appareil. Réessayez.";return}
+ paint();toast("Profil enregistré");
+ if(welcome)setTimeout(function(){location.href="payfollow-tableau-de-bord.html"},600)});
+$("skip").addEventListener("click",function(){PF.setProfile({"new":false})});
+
+var ind=document.getElementById("ind");function moveInd(){var b=document.querySelector('#tabs [aria-current="page"]');if(!b||!b.offsetWidth){ind.style.opacity=0;return}ind.style.opacity=1;ind.style.width=b.offsetWidth+"px";ind.style.transform="translateX("+b.offsetLeft+"px)"}window.addEventListener("resize",moveInd);moveInd();requestAnimationFrame(function(){ind.classList.add("ready")});if(document.fonts&&document.fonts.ready)document.fonts.ready.then(moveInd);})();</script>
 <div class="pov" id="pov" hidden></div><div class="ps" id="ps" hidden><a href="payfollow-historique.html"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Historique</a><a href="payfollow-exports.html"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>Exports</a><a href="payfollow-profil.html" aria-current="page"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>Mon profil</a></div><script>(function(){var b=document.querySelector("[data-plus]"),s=document.getElementById("ps"),o=document.getElementById("pov");if(!b)return;function t(x){s.hidden=o.hidden=!x}b.addEventListener("click",function(e){e.preventDefault();t(s.hidden)});o.addEventListener("click",function(){t(false)})})();</script></body>
 </html>

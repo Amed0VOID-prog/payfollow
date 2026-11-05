@@ -188,12 +188,23 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
     return { demo: true };
   }
 
+  /* Après connexion : nouveau compte -> page Profil ; compte existant -> tableau de bord. */
+  function enter(isNew, d){
+    try {
+      var p = JSON.parse(localStorage.getItem("pf_profile") || "{}") || {};
+      if (isNew) p = { p: (d && d.prenom) || "", e: (d && d.email) || "", "new": true };
+      else if (d && d.email && !p.e) p.e = d.email;
+      localStorage.setItem("pf_profile", JSON.stringify(p));
+    } catch (e) {}
+    setTimeout(function(){ location.href = isNew ? "payfollow-profil.html" : "payfollow-tableau-de-bord.html"; }, 500);
+  }
+
   function say(form, text, kind){ var m = form.querySelector(".msg"); m.textContent = text; m.className = "msg " + kind; }
 
   document.querySelectorAll("[data-google]").forEach(function(b){
     b.addEventListener("click", async function(){
       var form = b.parentNode.querySelector("form");
-      try { var r = await googleSignIn(); say(form, r && r.demo ? "Aperçu : la connexion Google n’est pas encore branchée." : "", "ok"); }
+      try { await googleSignIn(); say(form, "Un instant…", "ok"); enter(!!b.closest(".p-signup"), null); }
       catch (e) { say(form, "Connexion avec Google impossible. Réessayez dans un instant.", "err"); }
     });
   });
@@ -211,11 +222,17 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
       if (d.pw.length < 6) return bad(f.pw, "Le mot de passe doit contenir au moins 6 caractères.");
       var btn = form.querySelector(".go"), old = btn.textContent;
       btn.disabled = true; btn.textContent = "Un instant…"; say(form, "", "");
+      var ok = false;
       try {
-        var r = await authenticate(mode, d);
-        say(form, r && r.demo ? "Aperçu du design : la connexion n’est pas encore branchée." : "C’est bon.", "ok");
+        await authenticate(mode, d);
+        ok = true;
       } catch (e) {
         say(form, "Impossible de continuer. Vérifiez vos informations, puis réessayez.", "err");
+      }
+      if (ok) {
+        say(form, mode === "signup" ? "Compte créé. Un instant…" : "Connexion réussie. Un instant…", "ok");
+        enter(mode === "signup", d);
+        return;
       }
       btn.disabled = false; btn.textContent = old;
     });
