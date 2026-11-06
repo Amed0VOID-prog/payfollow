@@ -311,22 +311,78 @@
       .then(function (sb) { return sb ? Promise.race([sb.auth.signOut({ scope: "local" }), wait(3000)]) : null; })
       .catch(function () {}).then(clearLocal);
   }
-  /* Supprime le compte de l'utilisateur connecté (fonction SQL supprimer_mon_compte) puis ferme la session ici. */
-  function deleteAccount() {
-    return getSb().then(function (sb) {
-      if (!sb) return { ok: false, err: "reseau" };
-      return sb.auth.getSession().then(function (r) {
-        if (!(r && r.data && r.data.session)) return { ok: false, err: "session" };
-        return sb.rpc("supprimer_mon_compte").then(function (res) {
-          if (res && res.error) {
-            var m = String(res.error.message || "").toLowerCase(), c = String(res.error.code || "");
-            return { ok: false, err: (c === "PGRST202" || m.indexOf("could not find") > -1 || m.indexOf("schema cache") > -1) ? "absent" : "reseau" };
-          }
-          qSet([]);   /* plus rien à envoyer : le compte n'existe plus */
-          return signOut().then(function () { return { ok: true }; });
-        });
+  /* Supprime le compte de l'utilisateur connecté (fonction SQL supprimer_mon_compte) puis ferme la session ici.
+     Chaque étape a un délai maximum : l'écran ne reste jamais bloqué. */
+  function after(p, ms) {
+    return Promise.race([Promise.resolve(p), new Promise(function (res) { setTimeout(function () { res({ timeout: true }); }, ms); })]);
+  }
+  function storedToken() {
+    try {
+      var k = Object.keys(localStorage).filter(function (x) { return /^sb-.*-auth-token$/.test(x); })[0]; if (!k) return "";
+      var o = JSON.parse(localStorage.getItem(k) || "null");
+      return (o && (o.access_token || (o.currentSession && o.currentSession.access_token))) || "";
+    } catch (e) { return ""; }
+  }
+  /* Appel direct à la base (sans passer par le verrou de session de la bibliothèque) */
+  function rpcDirect(sb, T) {
+    var tok = storedToken(), url = sb.supabaseUrl, key = sb.supabaseKey;
+    if (!tok || !url || !key) return Promise.resolve({ skip: true });
+    var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, T);
+    return fetch(url + "/rest/v1/rpc/supprimer_mon_compte", {
+      method: "POST", signal: ctl ? ctl.signal : undefined, body: "{}",
+      headers: { apikey: key, Authorization: "Bearer " + tok, "Content-Type": "application/json" }
+    }).then(function (r) {
+      clearTimeout(t);
+      if (r.ok) return { ok: true };
+      return r.text().then(function (txt) {
+        var low = String(txt || "").toLowerCase();
+        if (r.status === 404 || low.indexOf("pgrst202") > -1 || low.indexOf("could not find") > -1) return { err: "absent" };
+        if (r.status === 401 || r.status === 403) return { skip: true };   /* jeton expiré : on réessaie par la bibliothèque */
+        return { err: "reseau" };
       });
+    }, function () { clearTimeout(t); return { err: "reseau" }; });
+  }
+  function rpcLib(sb, T) {
+    return after(sb.rpc("supprimer_mon_compte"), T).then(function (res) {
+      if (res && res.timeout) return { err: "reseau" };
+      if (res && res.error) {
+        var m = String(res.error.message || "").toLowerCase(), c = String(res.error.code || "");
+        return { err: (c === "PGRST202" || m.indexOf("could not find") > -1 || m.indexOf("schema cache") > -1) ? "absent" : "reseau" };
+      }
+      return { ok: true };
+    }, function () { return { err: "reseau" }; });
+  }
+  /* Quand la réponse n'arrive pas : on vérifie auprès du serveur si le compte existe encore. */
+  function gone(sb) {
+    return after(sb.auth.getUser(), 8000).then(function (r) {
+      if (!r || r.timeout) return false;
+      var e = r.error; if (!e) return false;
+      var m = String(e.message || "").toLowerCase(), s = e.status;
+      return s === 403 || s === 404 || m.indexOf("does not exist") > -1 || m.indexOf("user_not_found") > -1 || m.indexOf("not found") > -1;
+    }, function () { return false; });
+  }
+  function deleteAccount() {
+    var T = window.__pfDelT || 20000;
+    return after(getSb(), 8000).then(function (sb) {
+      if (!sb || sb.timeout) return { ok: false, err: "reseau" };
+      if (!storedToken()) {
+        return after(sb.auth.getSession(), 8000).then(function (r) {
+          var s = r && r.data && r.data.session; return s ? null : { ok: false, err: "session" };
+        }).then(function (stop) { return stop || go(sb); });
+      }
+      return go(sb);
     }).catch(function () { return { ok: false, err: "reseau" }; });
+    function go(sb) {
+      return rpcDirect(sb, T).then(function (r) { return r.skip ? rpcLib(sb, T) : r; }).then(function (r) {
+        if (r.ok) return finish();
+        if (r.err === "absent") return { ok: false, err: "absent" };
+        return gone(sb).then(function (g) { return g ? finish() : { ok: false, err: "reseau" }; });
+      });
+    }
+    function finish() {
+      qSet([]);   /* plus rien à envoyer : le compte n'existe plus */
+      return signOut().then(function () { return { ok: true }; });
+    }
   }
   /* Pages privées : sans session, retour à la page de connexion. */
   function guard() {
