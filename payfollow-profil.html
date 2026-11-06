@@ -240,6 +240,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 button.skip{border:0;background:none;width:100%}
 .skip{display:block;text-align:center;margin-top:6px;padding:12px;color:var(--mut);font-weight:600;font-size:15px}
 .skip[hidden]{display:none}
+.del{display:block;width:100%;margin-top:8px;padding:14px;border:0;background:none;color:var(--mut);font-weight:600;font-size:14px;text-decoration:underline;min-height:44px}
 .out{display:grid;place-items:center;height:50px;border:1.5px solid var(--line);border-radius:99px;background:#fff;color:var(--red);font-weight:700;text-decoration:none}
 @media (min-width:900px){#pm{max-width:560px;margin:0 auto}}
 </style>
@@ -261,7 +262,8 @@ button.skip{border:0;background:none;width:100%}
 <a class="skip" id="skip" href="payfollow-tableau-de-bord.html" hidden>Passer pour l’instant</a>
 <button type="button" class="skip" id="pcancel" hidden>Annuler</button>
 </form>
-<a class="out rv" data-logout style="--i:4" href="payfollow-connexion-v2.html">Se déconnecter</a></div></main>
+<a class="out rv" data-logout style="--i:4" href="payfollow-connexion-v2.html?out=1">Se déconnecter</a>
+<button type="button" class="del rv" style="--i:5" id="pdel">Supprimer mon compte</button></div></main>
 
 <nav class="tb" aria-label="Navigation">
   <a href="payfollow-tableau-de-bord.html"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</a>
@@ -335,6 +337,37 @@ $("pform").addEventListener("submit",function(ev){ev.preventDefault();
  if(welcome){setTimeout(function(){location.href="payfollow-tableau-de-bord.html"},600);return}
  renderView();show("view");window.scrollTo(0,0)});
 $("skip").addEventListener("click",function(){PF.setProfile({"new":false})});
+
+/* Supprimer mon compte : confirmation en tapant SUPPRIMER */
+$("pdel").addEventListener("click",function(){
+ if($("pf-del"))return;
+ var o=document.createElement("div");o.id="pf-del";o.setAttribute("role","dialog");o.setAttribute("aria-modal","true");o.setAttribute("aria-labelledby","pf-del-t");
+ o.setAttribute("style","position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:20px;background:rgba(16,25,58,.5)");
+ o.innerHTML='<div style="background:#fff;color:var(--navy);border-radius:20px;padding:22px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(16,25,58,.3)">'+
+  '<h2 id="pf-del-t" style="margin:0 0 8px;font-size:19px">Supprimer votre compte ?</h2>'+
+  '<p style="margin:0 0 14px;color:var(--mut);line-height:1.5;font-size:15px">Votre compte et toutes vos données (clients, paiements, versements, relances, profil) seront effacés définitivement. Cette action est irréversible.</p>'+
+  '<label for="pf-del-i" style="display:block;font-weight:700;font-size:14px;margin-bottom:6px">Tapez SUPPRIMER pour confirmer</label>'+
+  '<input id="pf-del-i" type="text" autocomplete="off" autocapitalize="characters" style="width:100%;height:50px;border:1.5px solid var(--line);border-radius:14px;padding:0 16px;font:inherit;font-size:16px;box-sizing:border-box">'+
+  '<p id="pf-del-m" role="alert" style="min-height:20px;margin:8px 0 0;font-size:14px"></p>'+
+  '<button type="button" id="pf-del-ok" disabled style="display:block;width:100%;height:50px;margin-top:6px;border:0;border-radius:99px;background:var(--red);color:#fff;font:inherit;font-weight:700;font-size:16px;opacity:.45">Supprimer définitivement</button>'+
+  '<button type="button" id="pf-del-x" style="display:block;width:100%;margin-top:6px;padding:14px;border:0;background:none;color:var(--mut);font:inherit;font-weight:600;font-size:15px">Annuler</button></div>';
+ document.body.appendChild(o);
+ var inp=o.querySelector("#pf-del-i"),ok=o.querySelector("#pf-del-ok"),msg=o.querySelector("#pf-del-m"),x=o.querySelector("#pf-del-x");
+ function shut(){if(o.parentNode)o.parentNode.removeChild(o);document.removeEventListener("keydown",esc)}
+ function esc(e){if(e.key==="Escape"&&!ok.dataset.busy)shut()}
+ document.addEventListener("keydown",esc);
+ o.addEventListener("click",function(e){if(e.target===o&&!ok.dataset.busy)shut()});
+ x.addEventListener("click",function(){if(!ok.dataset.busy)shut()});
+ inp.addEventListener("input",function(){var on=inp.value.trim().toUpperCase()==="SUPPRIMER";ok.disabled=!on;ok.style.opacity=on?"1":".45"});
+ ok.addEventListener("click",function(){
+  if(ok.disabled||ok.dataset.busy)return;ok.dataset.busy="1";ok.disabled=true;ok.textContent="Suppression…";msg.style.color="var(--mut)";msg.textContent="";
+  PF.deleteAccount().then(function(r){
+   if(r&&r.ok){msg.style.color="var(--g)";msg.textContent="Votre compte a été supprimé.";x.hidden=true;setTimeout(function(){location.href="payfollow-accueil.html"},1600);return}
+   delete ok.dataset.busy;ok.disabled=false;ok.textContent="Supprimer définitivement";msg.style.color="var(--red)";
+   msg.textContent=r&&r.err==="absent"?"La suppression n’est pas disponible pour le moment. Réessayez plus tard.":r&&r.err==="session"?"Votre session a expiré. Reconnectez-vous, puis réessayez.":"Suppression impossible. Vérifiez votre connexion et réessayez."});
+ });
+ inp.focus();
+});
 
 var ind=document.getElementById("ind");function moveInd(){var b=document.querySelector('#tabs [aria-current="page"]');if(!b||!b.offsetWidth){ind.style.opacity=0;return}ind.style.opacity=1;ind.style.width=b.offsetWidth+"px";ind.style.transform="translateX("+b.offsetLeft+"px)"}window.addEventListener("resize",moveInd);moveInd();requestAnimationFrame(function(){ind.classList.add("ready")});if(document.fonts&&document.fonts.ready)document.fonts.ready.then(moveInd);})();</script>
 <div class="pov" id="pov" hidden></div><div class="ps" id="ps" hidden><a href="payfollow-historique.html"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Historique</a><a href="payfollow-exports.html"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>Exports</a><a href="payfollow-profil.html" aria-current="page"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>Mon profil</a></div><script>(function(){var b=document.querySelector("[data-plus]"),s=document.getElementById("ps"),o=document.getElementById("pov");if(!b)return;function t(x){s.hidden=o.hidden=!x}b.addEventListener("click",function(e){e.preventDefault();t(s.hidden)});o.addEventListener("click",function(){t(false)})})();</script></body>

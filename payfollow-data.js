@@ -300,13 +300,33 @@
     return sbP;
   }
   function clearLocal() {
-    try { Object.keys(localStorage).filter(function (k) { return k.indexOf("pf_") === 0; }).forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+    /* efface les données PayFollow ET la session Supabase (sb-…-auth-token) de cet appareil */
+    try { Object.keys(localStorage).filter(function (k) { return k.indexOf("pf_") === 0 || /^sb-.*-auth-token/.test(k); }).forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
     db = null;
   }
+  /* Déconnexion de CET appareil : fermée localement sans attendre le réseau, puis tout est effacé (le compte et ses données restent dans la base). */
   function signOut() {
-    var wait = new Promise(function (res) { setTimeout(res, 4000); });
-    return Promise.race([flush(), wait]).then(function () { return getSb(); })
-      .then(function (sb) { return sb ? sb.auth.signOut() : null; }).catch(function () {}).then(clearLocal);
+    var wait = function (ms) { return new Promise(function (res) { setTimeout(res, ms); }); };
+    return Promise.race([flush(), wait(4000)]).then(function () { return getSb(); })
+      .then(function (sb) { return sb ? Promise.race([sb.auth.signOut({ scope: "local" }), wait(3000)]) : null; })
+      .catch(function () {}).then(clearLocal);
+  }
+  /* Supprime le compte de l'utilisateur connecté (fonction SQL supprimer_mon_compte) puis ferme la session ici. */
+  function deleteAccount() {
+    return getSb().then(function (sb) {
+      if (!sb) return { ok: false, err: "reseau" };
+      return sb.auth.getSession().then(function (r) {
+        if (!(r && r.data && r.data.session)) return { ok: false, err: "session" };
+        return sb.rpc("supprimer_mon_compte").then(function (res) {
+          if (res && res.error) {
+            var m = String(res.error.message || "").toLowerCase(), c = String(res.error.code || "");
+            return { ok: false, err: (c === "PGRST202" || m.indexOf("could not find") > -1 || m.indexOf("schema cache") > -1) ? "absent" : "reseau" };
+          }
+          qSet([]);   /* plus rien à envoyer : le compte n'existe plus */
+          return signOut().then(function () { return { ok: true }; });
+        });
+      });
+    }).catch(function () { return { ok: false, err: "reseau" }; });
   }
   /* Pages privées : sans session, retour à la page de connexion. */
   function guard() {
@@ -494,6 +514,6 @@
     relances: relances, allRelances: allRelances, addRelance: addRelance,
     addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, deletePayment: deletePayment,
     monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm,
-    profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut, pull: pull, flush: flush
+    profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut, deleteAccount: deleteAccount, pull: pull, flush: flush
   };
 })();

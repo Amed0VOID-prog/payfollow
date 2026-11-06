@@ -248,8 +248,14 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
   }
 
   /* Déjà connecté (ou retour de Google) : on entre directement. */
+  var forcedOut = /[?&]out=1(&|$)/.test(location.search);   /* arrivée depuis « Se déconnecter » : on ne rentre pas automatiquement */
   getSb().then(function(sb){
     if (!sb) return null;
+    if (forcedOut) {
+      try { history.replaceState(null, "", location.pathname); } catch (e) {}
+      var wipe = function(){ try { Object.keys(localStorage).filter(function(k){ return /^sb-.*-auth-token/.test(k); }).forEach(function(k){ localStorage.removeItem(k); }); } catch (e) {} return null; };
+      return Promise.resolve(sb.auth.signOut({ scope: "local" })).then(wipe, wipe);
+    }
     return sb.auth.getSession();
   }).then(function(r){
     var s = r && r.data && r.data.session; if (!s) return;
