@@ -209,10 +209,23 @@
       var i = initial(); if (i) a.textContent = i;
     }
   }
+  /* Le prénom suit sur toutes les pages : [data-pf-name], ou le titre « Bonjour … » du tableau de bord. */
+  function paintName() {
+    var p = getProfile(), n = String(p.p || "").trim(); if (!n) return;
+    document.querySelectorAll("[data-pf-name]").forEach(function (e) { e.textContent = n; });
+    var scope = document.querySelector("main") || document.body; if (!scope) return;
+    var w = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, null), t, done = false;
+    while (!done && (t = w.nextNode())) {
+      var par = t.parentNode, tag = par && par.nodeName;
+      var m = /^(\s*Bonjour\s+)(\S[^!,.\n]*?)(\s*[!,.]?\s*)$/.exec(t.nodeValue);
+      if (m && (tag === "H1" || tag === "H2")) { t.nodeValue = m[1] + n + m[3]; done = true; }
+      else if (/^\s*Bonjour\s*$/.test(t.nodeValue) && (tag === "H1" || tag === "H2") && t.nextSibling && t.nextSibling.nodeType === 1) { t.nextSibling.textContent = n; done = true; }
+    }
+  }
   function setProfile(o) {
     var cur = getProfile(); Object.keys(o || {}).forEach(function (k) { cur[k] = o[k]; });
     try { localStorage.setItem(PKEY, JSON.stringify(cur)); } catch (e) { return false; }
-    paintAvatar(); return true;
+    paintAvatar(); paintName(); return true;
   }
 
   function banner() {
@@ -228,7 +241,7 @@
       clearDemo(); location.reload();
     });
   }
-  function boot() { banner(); paintAvatar(); }
+  function boot() { banner(); paintAvatar(); paintName(); }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 
   window.PF = {

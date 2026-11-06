@@ -235,6 +235,9 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 .fm.pf select{padding-right:46px}
 .fm.pf input[readonly]{background:var(--bg)!important;color:var(--mut)!important;-webkit-text-fill-color:var(--mut);box-shadow:none}
 .fm.pf .fl .opt{font-weight:500}
+.info li span:last-child{font-weight:600;text-align:right;overflow-wrap:anywhere}
+.pf .info{margin-top:12px}
+button.skip{border:0;background:none;width:100%}
 .skip{display:block;text-align:center;margin-top:6px;padding:12px;color:var(--mut);font-weight:600;font-size:15px}
 .skip[hidden]{display:none}
 .out{display:grid;place-items:center;height:50px;border:1.5px solid var(--line);border-radius:99px;background:#fff;color:var(--red);font-weight:700;text-decoration:none}
@@ -243,11 +246,12 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 <div id="pm"><div class="top rv"><div><h1 id="ptitle">Mon profil</h1><p id="psub">Votre compte et vos préférences.</p></div></div>
 <section class="pc rv" style="--i:1"><span class="big2" id="bigav" aria-hidden="true"></span><div><h2 id="pname">Mon compte</h2><span class="sub">Essai gratuit du pack Pro en cours</span><div class="pb"><button type="button" class="lk" id="chg">Changer la photo</button><button type="button" class="lk dg" id="rmv" hidden>Retirer</button></div></div><input type="file" id="file" accept="image/*" hidden></section>
 <section class="cpick rv" id="cur" style="--i:2"><h2>Devise de mon compte</h2><div class="sub">Tous les montants du site s’affichent dans cette devise.</div><div class="opts"><button type="button" data-cur="EUR" aria-checked="true">Euro <b>€</b></button><button type="button" data-cur="XOF" aria-checked="false">Franc CFA <b>FCFA</b></button></div></section>
+<section class="pf rv" id="pview" style="--i:3" hidden><h2>Mes informations</h2><ul class="info" id="plist"></ul><button type="button" class="go2" id="pedit">Modifier le profil</button></section>
 <form class="pf fm rv" id="pform" style="--i:3" novalidate>
 <h2>Mes informations</h2>
 <label class="fl" for="f-p">Prénom</label><div class="f"><input id="f-p" type="text" autocomplete="given-name" maxlength="40" placeholder="Prénom"></div>
 <label class="fl" for="f-n">Nom</label><div class="f"><input id="f-n" type="text" autocomplete="family-name" maxlength="40" placeholder="Nom"></div>
-<label class="fl" for="f-e">Adresse e-mail</label><div class="f"><input id="f-e" type="email" readonly placeholder="Adresse e-mail"></div>
+<label class="fl" for="f-e">Adresse e-mail</label><div class="f"><input id="f-e" type="email" inputmode="email" autocomplete="email" maxlength="80" placeholder="nom@exemple.com"></div>
 <label class="fl" for="f-t">WhatsApp ou téléphone <span class="opt">(facultatif)</span></label><div class="f"><input id="f-t" type="tel" inputmode="tel" autocomplete="tel" maxlength="24" placeholder="+226 70 00 00 00"></div>
 <label class="fl" for="f-a">Activité <span class="opt">(facultatif)</span></label><div class="f"><input id="f-a" type="text" maxlength="60" placeholder="Graphiste, développeur, agence…"></div>
 <label class="fl" for="f-o">Entreprise ou agence <span class="opt">(facultatif)</span></label><div class="f"><input id="f-o" type="text" autocomplete="organization" maxlength="60" placeholder="Nom de votre structure"></div>
@@ -255,6 +259,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 <p class="err" id="perr" role="alert"></p>
 <button class="go" type="submit" id="psave">Enregistrer</button>
 <a class="skip" id="skip" href="payfollow-tableau-de-bord.html" hidden>Passer pour l’instant</a>
+<button type="button" class="skip" id="pcancel" hidden>Annuler</button>
 </form>
 <a class="out rv" style="--i:4" href="payfollow-connexion-v2.html">Se déconnecter</a></div></main>
 
@@ -283,14 +288,24 @@ m.addEventListener("click",function(e){var b=e.target.closest("[data-cur]");if(!
 /* Profil */
 var P=PF.profile(),welcome=!!P.new;
 var USER='<svg class="ic" viewBox="0 0 24 24" style="width:32px;height:32px"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>';
+var FIELDS=[["p","f-p","Prénom"],["n","f-n","Nom"],["e","f-e","E-mail"],["t","f-t","WhatsApp / téléphone"],["a","f-a","Activité"],["o","f-o","Entreprise / agence"],["y","f-y","Pays"]];
 function paint(){var p=PF.profile(),b=$("bigav");
  if(p.ph){b.innerHTML="";b.style.backgroundImage='url("'+p.ph+'")'}
  else{b.style.backgroundImage="";var i=PF.initial();if(i)b.textContent=i;else b.innerHTML=USER}
  $("rmv").hidden=!p.ph;
  $("pname").textContent=((p.p||"")+" "+(p.n||"")).trim()||"Mon compte"}
-$("f-p").value=P.p||"";$("f-n").value=P.n||"";$("f-e").value=P.e||"";$("f-t").value=P.t||"";$("f-a").value=P.a||"";$("f-o").value=P.o||"";$("f-y").value=P.y||"";
-if(welcome){$("ptitle").textContent="Complétez votre profil";$("psub").textContent="Ajoutez vos informations pour personnaliser PayFollow.";$("psave").textContent="Enregistrer et continuer";$("skip").hidden=false}
-paint();
+function fill(){var p=PF.profile();FIELDS.forEach(function(f){$(f[1]).value=p[f[0]]||""})}
+function renderView(){var p=PF.profile(),ul=$("plist");ul.innerHTML="";
+ FIELDS.forEach(function(f){var v=p[f[0]];if(!v)return;var li=document.createElement("li"),a=document.createElement("span"),b=document.createElement("span");a.textContent=f[2];b.textContent=v;li.appendChild(a);li.appendChild(b);ul.appendChild(li)})}
+/* "view" = informations affichées + bouton Modifier ; "edit" = formulaire */
+function show(mode){var v=mode==="view";$("pview").hidden=!v;$("pform").hidden=v;
+ $("pcancel").hidden=!(mode==="edit"&&!welcome&&!!PF.profile().p)}
+fill();paint();
+if(welcome){$("ptitle").textContent="Complétez votre profil";$("psub").textContent="Ajoutez vos informations pour personnaliser PayFollow.";$("psave").textContent="Enregistrer et continuer";$("skip").hidden=false;show("edit")}
+else if(P.p){renderView();show("view")}
+else show("edit");
+$("pedit").addEventListener("click",function(){fill();$("perr").textContent="";show("edit");$("f-p").focus()});
+$("pcancel").addEventListener("click",function(){$("perr").textContent="";renderView();show("view");window.scrollTo(0,0)});
 
 /* Photo : recadrée au carré et réduite pour rester légère dans le navigateur */
 $("chg").addEventListener("click",function(){$("file").click()});
@@ -310,13 +325,15 @@ $("rmv").addEventListener("click",function(){PF.setProfile({ph:""});paint();toas
 /* Enregistrer */
 function bad(id,t){var e=$(id);e.setAttribute("aria-invalid","true");e.focus();$("perr").textContent=t}
 $("pform").addEventListener("submit",function(ev){ev.preventDefault();
- ["f-p","f-t"].forEach(function(i){$(i).removeAttribute("aria-invalid")});$("perr").textContent="";
- var v={p:$("f-p").value.trim(),n:$("f-n").value.trim(),t:$("f-t").value.trim(),a:$("f-a").value.trim(),o:$("f-o").value.trim(),y:$("f-y").value,"new":false};
+ ["f-p","f-e","f-t"].forEach(function(i){$(i).removeAttribute("aria-invalid")});$("perr").textContent="";
+ var v={p:$("f-p").value.trim(),n:$("f-n").value.trim(),e:$("f-e").value.trim(),t:$("f-t").value.trim(),a:$("f-a").value.trim(),o:$("f-o").value.trim(),y:$("f-y").value,"new":false};
  if(!v.p)return bad("f-p","Entrez votre prénom.");
+ if(v.e&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.e))return bad("f-e","Entrez une adresse e-mail valide, par exemple nom@exemple.com.");
  var d=v.t.replace(/\D/g,"");if(v.t&&(d.length<8||d.length>15))return bad("f-t","Entrez un numéro valide, par exemple +226 70 00 00 00.");
  if(!PF.setProfile(v)){$("perr").textContent="Impossible d’enregistrer sur cet appareil. Réessayez.";return}
  paint();toast("Profil enregistré");
- if(welcome)setTimeout(function(){location.href="payfollow-tableau-de-bord.html"},600)});
+ if(welcome){setTimeout(function(){location.href="payfollow-tableau-de-bord.html"},600);return}
+ renderView();show("view");window.scrollTo(0,0)});
 $("skip").addEventListener("click",function(){PF.setProfile({"new":false})});
 
 var ind=document.getElementById("ind");function moveInd(){var b=document.querySelector('#tabs [aria-current="page"]');if(!b||!b.offsetWidth){ind.style.opacity=0;return}ind.style.opacity=1;ind.style.width=b.offsetWidth+"px";ind.style.transform="translateX("+b.offsetLeft+"px)"}window.addEventListener("resize",moveInd);moveInd();requestAnimationFrame(function(){ind.classList.add("ready")});if(document.fonts&&document.fonts.ready)document.fonts.ready.then(moveInd);})();</script>
