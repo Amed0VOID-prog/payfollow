@@ -381,7 +381,8 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       if (!n){ $("fn").setAttribute("aria-invalid","true"); $("fn").focus(); $("fer").textContent = "Entrez le nom du client."; return; }
       if (PF.clientNames().some(function(x){ return PF.norm(x) === PF.norm(n); })){ $("fn").setAttribute("aria-invalid","true"); $("fn").focus(); $("fer").textContent = "Ce client existe déjà."; return; }
       var e = $("fe").value.trim(), t = $("ft").value.trim();
-      PF.addClient(n,e,t); build();
+      if (!PF.addClient(n,e,t)){ close(); return; }
+      build();
       filter = "all"; query = ""; $("q").value = ""; close(); renderAll(false); toast("Client ajouté : " + n);
     });
   }

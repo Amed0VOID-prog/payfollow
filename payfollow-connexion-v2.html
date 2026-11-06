@@ -147,6 +147,7 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
 </main>
 
 <script src="payfollow-supabase.js"></script>
+<script src="payfollow-data.js"></script>
 <script>
 (function(){
   var card = document.getElementById("card");
@@ -228,7 +229,7 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
     var sb = await getSb(), uid = user && user.id;
     try {
       var last = localStorage.getItem("pf_uid");
-      if (uid && last && last !== uid) clearLocal();
+      if (uid && last !== uid) clearLocal();   /* autre compte, ou première connexion sur ce navigateur */
       if (uid) localStorage.setItem("pf_uid", uid);
     } catch (e) {}
     var p = null;
@@ -241,6 +242,8 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
     }
     if (p) { try { localStorage.setItem("pf_profile", JSON.stringify(p)); } catch (e) {} }
     var welcome = !!(p && p["new"]);
+    /* on charge les clients et paiements du compte avant d'ouvrir l'application */
+    try { if (window.PF && sb && user) await Promise.race([PF.pull({ fresh: true }), new Promise(function (r) { setTimeout(r, 6000); })]); } catch (e) {}
     setTimeout(function(){ location.href = welcome ? "payfollow-profil.html" : "payfollow-tableau-de-bord.html"; }, 400);
   }
 

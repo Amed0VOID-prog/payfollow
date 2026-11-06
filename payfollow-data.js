@@ -1,5 +1,5 @@
 /* PayFollow : données communes à toutes les pages (prototype 03).
-   Tout est gardé dans le navigateur (localStorage, clé pf_data). */
+   Les données sont lues dans le navigateur (cache pf_data) et synchronisées avec Supabase en arrière-plan. */
 (function () {
   var KEY = "pf_data", ANCHOR = "2026-11-04";
   var MS = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
@@ -56,14 +56,81 @@
     return { v: 1, demo: true, clients: names.map(function (n) { return { n: n, e: "", t: "", x: 1 }; }), payments: P, rel: rel };
   }
 
-  /* ---------- Stockage ---------- */
+  /* ---------- Identifiants ---------- */
+  function uuid() {
+    try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 3 | 8)).toString(16);
+    });
+  }
+  var LIMIT = 5;
+
+  /* ---------- Stockage local (cache) : l'affichage lit ici, la base est mise à jour en arrière-plan ---------- */
   function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
   function find(n) { var q = norm(n); return db.clients.filter(function (c) { return norm(c.n) === q; })[0]; }
+  function demoOff() { try { return localStorage.getItem("pf_demooff") === "1"; } catch (e) { return false; } }
+  function empty() { return { v: 1, demo: false, clients: [], payments: [], rel: {} }; }
+  function load() {
+    if (db) return db;
+    try { var r = localStorage.getItem(KEY); if (r) db = JSON.parse(r); } catch (e) {}
+    if (!db || !db.payments || !db.clients) db = demoOff() ? empty() : seed();
+    if (!db.rel) db.rel = {};
+    save();
+    return db;
+  }
+
+  /* ---------- Offre et limite de clients (la base fait foi : cette vérification évite juste un aller-retour) ---------- */
+  function plan() { try { return JSON.parse(localStorage.getItem("pf_plan") || "null") || {}; } catch (e) { return {}; } }
+  function limited() { var p = plan(); return p.plan === "gratuit" && !(p.fin && p.fin >= today()); }
+  function realCount() { return db.clients.filter(function (c) { return !c.x; }).length; }
+  function canAdd() { return !limited() || realCount() < LIMIT; }
+  function showLimit() {
+    if (document.getElementById("pf-lim")) return;
+    var o = document.createElement("div"); o.id = "pf-lim";
+    o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true"); o.setAttribute("aria-labelledby", "pf-lim-t");
+    o.setAttribute("style", "position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:20px;background:rgba(16,25,58,.45)");
+    o.innerHTML = '<div style="background:#fff;color:#10193a;border-radius:20px;padding:22px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(16,25,58,.3)">' +
+      '<h2 id="pf-lim-t" style="margin:0 0 8px;font-size:19px">Limite de ' + LIMIT + ' clients atteinte</h2>' +
+      '<p style="margin:0 0 18px;color:#5b6478;line-height:1.5;font-size:15px">Avec l’offre Gratuit, vous pouvez suivre jusqu’à ' + LIMIT + ' clients. Passez au Pack Pro pour en ajouter autant que vous voulez.</p>' +
+      '<a id="pf-lim-a" href="payfollow-tarifs.html" style="display:grid;place-items:center;height:48px;border-radius:99px;background:#1f7a3d;color:#fff;font-weight:700;text-decoration:none;font-size:15px">Voir les offres</a>' +
+      '<button type="button" id="pf-lim-x" style="display:block;width:100%;margin-top:6px;padding:14px;border:0;background:none;color:#5b6478;font:inherit;font-weight:600;font-size:15px">Fermer</button></div>';
+    function shut() { if (o.parentNode) o.parentNode.removeChild(o); document.removeEventListener("keydown", esc); }
+    function esc(e) { if (e.key === "Escape") shut(); }
+    o.addEventListener("click", function (e) { if (e.target === o) shut(); });
+    document.body.appendChild(o);
+    o.querySelector("#pf-lim-x").addEventListener("click", shut);
+    document.addEventListener("keydown", esc);
+    o.querySelector("#pf-lim-a").focus();
+  }
+
+  /* ---------- File d'envoi vers la base : conservée dans le navigateur, rejouée si le réseau coupe ---------- */
+  var QK = "pf_q";
+  function qGet() { try { var a = JSON.parse(localStorage.getItem(QK) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function qSet(a) { try { localStorage.setItem(QK, JSON.stringify(a)); } catch (e) {} }
+  function enqueue(op) { var a = qGet(); a.push(op); qSet(a); flushSoon(); }
+  function money(x) { return Math.round(Number(x) * 100) / 100; }
+  function syncClient(c) {
+    if (c.x || !c.id) return;
+    enqueue({ k: "cl", d: { id: c.id, nom: c.n, email: c.e || "", telephone: c.t || "", cree_le: c.k || today() } });
+  }
+  function syncPayment(p) {
+    if (p.x) return;
+    var c = find(p.c); if (!c || !c.id) return;
+    enqueue({ k: "pa", d: { id: p.id, client_id: c.id, libelle: p.l || "Paiement", montant: money(p.a), echeance: p.e, cree_le: p.k || today() } });
+  }
+  /* Un client d'exemple qu'on utilise devient un vrai client (donc compté dans la limite). */
+  function makeReal(c) {
+    if (!c.x) return true;
+    if (!canAdd()) { showLimit(); return false; }
+    delete c.x; c.id = uuid(); c.k = c.k || today(); syncClient(c); return true;
+  }
+
   function addClient(n, e, t) {
     n = String(n || "").trim(); if (!n) return "";
     var c = find(n); if (c) return c.n;
-    db.clients.push({ n: n, e: e || "", t: t || "", k: today() });
-    try { var a = JSON.parse(localStorage.getItem("pf_nc") || "[]"); a.push({ n: n, e: e || "", t: t || "" }); localStorage.setItem("pf_nc", JSON.stringify(a)); } catch (x) {}
+    if (!canAdd()) { showLimit(); return ""; }
+    c = { id: uuid(), n: n, e: e || "", t: t || "", k: today() };
+    db.clients.push(c); syncClient(c);
     return n;
   }
   /* Modifier un client : nom, e-mail, téléphone. Un changement de nom suit dans tous ses paiements. */
@@ -72,13 +139,13 @@
     var c = find(old); if (!c) return { ok: false, err: "absent" };
     var n = String(o.n || "").trim(); if (!n) return { ok: false, err: "nom" };
     var other = find(n); if (other && other !== c) return { ok: false, err: "existe" };
+    var wasDemo = !!c.x;
+    if (wasDemo && !canAdd()) { showLimit(); return { ok: false, err: "limite" }; }
     var from = c.n;
-    c.n = n; c.e = String(o.e || "").trim(); c.t = String(o.t || "").trim(); delete c.x;
+    c.n = n; c.e = String(o.e || "").trim(); c.t = String(o.t || "").trim();
+    if (wasDemo) { delete c.x; c.id = uuid(); c.k = c.k || today(); }
     db.payments.forEach(function (p) { if (norm(p.c) === norm(from)) p.c = n; });
-    try {
-      var a = JSON.parse(localStorage.getItem("pf_nc") || "[]").filter(function (x) { return !x || norm(x.n) !== norm(from); });
-      localStorage.setItem("pf_nc", JSON.stringify(a));
-    } catch (e) {}
+    syncClient(c);
     save(); return { ok: true, n: n };
   }
   /* Supprimer un client : sa fiche et tous ses paiements (avec versements et relances). Retourne le nombre de paiements effacés. */
@@ -88,31 +155,8 @@
     db.clients = db.clients.filter(function (x) { return x !== c; });
     db.payments = db.payments.filter(function (p) { return norm(p.c) !== q; });
     gone.forEach(function (p) { if (db.rel) delete db.rel[p.id]; });
-    try {
-      var a = JSON.parse(localStorage.getItem("pf_nc") || "[]").filter(function (x) { return !x || norm(x.n) !== q; });
-      localStorage.setItem("pf_nc", JSON.stringify(a));
-    } catch (e) {}
+    if (!c.x && c.id) enqueue({ k: "dc", id: c.id });   /* la base efface aussi ses paiements, versements et relances */
     save(); return gone.length;
-  }
-  function load() {
-    if (db) return db;
-    try { var r = localStorage.getItem(KEY); if (r) db = JSON.parse(r); } catch (e) {}
-    if (!db || !db.payments || !db.clients) db = seed();
-    if (!db.rel) {
-      db.rel = {};
-      if (db.demo) db.payments.forEach(function (p) { if (p.x && p.c === "Atelier Sahel" && p.l === "Flyers") db.rel[p.id] = [addDays(p.e, 14)]; });
-    }
-    /* reprise des anciennes clés (pages pas encore mises à jour) */
-    try {
-      JSON.parse(localStorage.getItem("pf_nc") || "[]").forEach(function (c) { if (c && c.n && !find(c.n)) db.clients.push({ n: c.n, e: c.e || "", t: c.t || "" }); });
-      var old = JSON.parse(localStorage.getItem("pf_np") || "[]");
-      if (old.length) {
-        old.forEach(function (p) { if (p && p.c) { addClient(p.c); db.payments.push({ id: uid(), c: p.c, l: p.l || "Paiement", a: +p.a || 0, e: p.d || today(), k: today(), v: [] }); } });
-        localStorage.setItem("pf_np", "[]");
-      }
-    } catch (e) {}
-    save();
-    return db;
   }
 
   /* ---------- Lecture ---------- */
@@ -134,34 +178,55 @@
   /* ---------- Écriture ---------- */
   function byId(id) { return load().payments.filter(function (p) { return p.id === id; })[0]; }
   function addPayment(o) {
-    load(); var c = addClient(o.c); if (!c) return null;
-    var p = { id: uid(), c: c, l: (o.l || "").trim() || "Paiement", a: +o.a, e: o.e, k: today(), v: [] };
-    db.payments.push(p); save(); return p.id;
+    load(); var cn = addClient(o.c); if (!cn) return null;
+    var c = find(cn); if (!makeReal(c)) return null;
+    var p = { id: uuid(), c: c.n, l: (o.l || "").trim() || "Paiement", a: +o.a, e: o.e, k: today(), v: [] };
+    db.payments.push(p); syncPayment(p); save(); return p.id;
   }
   function updatePayment(id, o) {
     var p = byId(id); if (!p) return false;
-    if (o.c != null) p.c = addClient(o.c) || p.c;
+    if (o.c != null && String(o.c).trim()) {
+      var cn = addClient(o.c); if (!cn) return false;
+      var c = find(cn);
+      if (!p.x && !makeReal(c)) return false;
+      p.c = cn;
+    }
     if (o.l != null) p.l = String(o.l).trim() || "Paiement";
     if (o.a != null) p.a = +o.a;
     if (o.e != null) p.e = o.e;
+    syncPayment(p); save(); return true;
+  }
+  function addVersement(id, a, d) {
+    var p = byId(id); if (!p) return false;
+    var v = { i: uuid(), a: +a, d: d, r: 1 }; p.v.push(v);
+    if (!p.x) enqueue({ k: "ve", d: { id: v.i, paiement_id: p.id, montant: money(a), date_verse: d } });
     save(); return true;
   }
-  function addVersement(id, a, d) { var p = byId(id); if (!p) return false; p.v.push({ a: +a, d: d, r: 1 }); save(); return true; }
-  function deletePayment(id) { load(); db.payments = db.payments.filter(function (p) { return p.id !== id; }); if (db.rel) delete db.rel[id]; save(); }
+  function deletePayment(id) {
+    load(); var p = byId(id);
+    db.payments = db.payments.filter(function (x) { return x.id !== id; });
+    if (db.rel) delete db.rel[id];
+    if (p && !p.x) enqueue({ k: "dp", id: id });
+    save();
+  }
 
   /* ---------- Relances faites : dates par paiement ---------- */
-  function relances(id) { load(); return ((db.rel || {})[id] || []).slice(); }
+  function rdate(e) { return typeof e === "string" ? e : e.d; }
+  function relances(id) { load(); return ((db.rel || {})[id] || []).map(rdate); }
   function allRelances() {
     load(); var out = [];
     db.payments.forEach(function (p) {
-      ((db.rel || {})[p.id] || []).forEach(function (d, i) { out.push({ id: p.id, c: p.c, l: p.l, d: d, n: Math.min(2, i) }); });
+      ((db.rel || {})[p.id] || []).map(rdate).forEach(function (d, i) { out.push({ id: p.id, c: p.c, l: p.l, d: d, n: Math.min(2, i) }); });
     });
     return out.sort(function (a, b) { return a.d < b.d ? 1 : -1; });
   }
   function addRelance(id, d) {
-    load(); if (!byId(id)) return false;
+    load(); var p = byId(id); if (!p) return false;
     if (!db.rel) db.rel = {};
-    (db.rel[id] = db.rel[id] || []).push(d || today()); save(); return true;
+    var r = { i: uuid(), d: d || today() };
+    (db.rel[id] = db.rel[id] || []).push(r);
+    if (!p.x) enqueue({ k: "re", d: { id: r.i, paiement_id: id, date_relance: r.d } });
+    save(); return true;
   }
 
   /* ---------- Chiffres par mois : reçu (versements) et attendu (échéances) ---------- */
@@ -189,7 +254,7 @@
     var ids = {}; db.payments.forEach(function (p) { ids[p.id] = 1; });
     Object.keys(db.rel || {}).forEach(function (k) { if (!ids[k]) delete db.rel[k]; });
     db.demo = false; save();
-    try { var keep = JSON.parse(localStorage.getItem("pf_nc") || "[]").filter(function (c) { return db.clients.some(function (k) { return norm(k.n) === norm(c.n); }); }); localStorage.setItem("pf_nc", JSON.stringify(keep)); } catch (e) {}
+    try { localStorage.setItem("pf_demooff", "1"); } catch (e) {}
   }
   /* ---------- Profil : prénom, nom, e-mail, téléphone, activité, entreprise, pays, photo ---------- */
   var PKEY = "pf_profile";
@@ -239,7 +304,9 @@
     db = null;
   }
   function signOut() {
-    return getSb().then(function (sb) { return sb ? sb.auth.signOut() : null; }).catch(function () {}).then(clearLocal);
+    var wait = new Promise(function (res) { setTimeout(res, 4000); });
+    return Promise.race([flush(), wait]).then(function () { return getSb(); })
+      .then(function (sb) { return sb ? sb.auth.signOut() : null; }).catch(function () {}).then(clearLocal);
   }
   /* Pages privées : sans session, retour à la page de connexion. */
   function guard() {
@@ -247,10 +314,129 @@
     getSb().then(function (sb) {
       if (!sb) return null;
       return sb.auth.getSession().then(function (r) {
-        if (!(r && r.data && r.data.session)) location.replace("payfollow-connexion-v2.html");
+        if (!(r && r.data && r.data.session)) { location.replace("payfollow-connexion-v2.html"); return; }
+        flush(); pull().then(function (ch) { if (ch) reloadOnce(); });
       });
     }).catch(function () {});
   }
+  /* ---------- Envoi vers la base (flush) ---------- */
+  var flushing = null, fT, retryT, dropped = false;
+  function flushSoon() { clearTimeout(fT); fT = setTimeout(flush, 60); }
+  function run(sb, uid, op) {
+    var d = op.d, T = { cl: "clients", pa: "paiements", ve: "versements", re: "relances" };
+    if (op.k === "dc") return sb.from("clients").delete().eq("id", op.id);
+    if (op.k === "dp") return sb.from("paiements").delete().eq("id", op.id);
+    if (T[op.k]) return sb.from(T[op.k]).upsert(Object.assign({ user_id: uid }, d));
+    return Promise.resolve({});
+  }
+  function step(sb, uid) {
+    var q = qGet(); if (!q.length) return Promise.resolve();
+    return Promise.resolve(run(sb, uid, q[0])).then(function (res) {
+      var err = res && res.error;
+      if (err) {
+        var code = String(err.code || ""), m = String(err.message || "").toLowerCase();
+        /* pas de code = réseau coupé ; jeton expiré : on garde l'envoi pour plus tard */
+        if (!code || code === "PGRST301" || m.indexOf("jwt") > -1) return;
+        /* refus définitif (limite, doublon, droit refusé…) : on abandonne cette ligne et on resynchronise */
+        if (m.indexOf("limite_clients") > -1) showLimit();
+        dropped = true;
+      }
+      var a = qGet(); a.shift(); qSet(a);
+      return step(sb, uid);
+    });
+  }
+  function flush() {
+    if (flushing) return flushing;
+    if (!qGet().length) return Promise.resolve();
+    flushing = getSb().then(function (sb) {
+      if (!sb) return;
+      return sb.auth.getSession().then(function (r) {
+        var s = r && r.data && r.data.session; if (!s) return;
+        return step(sb, s.user.id);
+      });
+    }).catch(function () {}).then(function () {
+      flushing = null;
+      if (qGet().length) { clearTimeout(retryT); retryT = setTimeout(flush, 15000); }
+      else if (dropped) { dropped = false; pull().then(function (ch) { if (ch) reloadOnce(); }); }
+    });
+    return flushing;
+  }
+  window.addEventListener("online", function () { flush(); });
+
+  /* ---------- Lecture depuis la base (pull) ---------- */
+  function canon(cl, pa, rel) {
+    return JSON.stringify({
+      c: cl.map(function (c) { return [c.id, c.n, c.e || "", c.t || "", c.k || ""]; }).sort(),
+      p: pa.map(function (p) {
+        return [p.id, p.c, p.l, Number(p.a), p.e, p.k || "", (p.v || []).map(function (v) { return [v.i || "", Number(v.a), v.d]; }).sort(),
+          ((rel || {})[p.id] || []).map(function (r) { return [r.i || "", r.d]; }).sort()];
+      }).sort()
+    });
+  }
+  function byD(a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; }
+  function applyPull(R, opt) {
+    load();
+    var byC = {}, cl = (R[0].data || []).map(function (x) {
+      var c = { id: x.id, n: x.nom, e: x.email || "", t: x.telephone || "", k: x.cree_le || "" }; byC[x.id] = c; return c;
+    });
+    var vs = {}, rs = {};
+    (R[2].data || []).forEach(function (x) { (vs[x.paiement_id] = vs[x.paiement_id] || []).push({ i: x.id, a: Number(x.montant), d: x.date_verse, r: 1 }); });
+    (R[3].data || []).forEach(function (x) { (rs[x.paiement_id] = rs[x.paiement_id] || []).push({ i: x.id, d: x.date_relance }); });
+    var pa = [], rel = {};
+    (R[1].data || []).forEach(function (x) {
+      var c = byC[x.client_id]; if (!c) return;
+      pa.push({ id: x.id, c: c.n, l: x.libelle || "Paiement", a: Number(x.montant), e: x.echeance, k: x.cree_le || x.echeance, v: (vs[x.id] || []).sort(byD) });
+      if (rs[x.id]) rel[x.id] = rs[x.id].sort(byD);
+    });
+    var ab = R[4] && R[4].data;
+    if (ab) { try { localStorage.setItem("pf_plan", JSON.stringify({ plan: ab.plan, fin: ab.essai_fin || "" })); } catch (e) {} }
+
+    var realC = db.clients.filter(function (c) { return !c.x; }), realP = db.payments.filter(function (p) { return !p.x; });
+    var realRel = {}; realP.forEach(function (p) { if (db.rel[p.id]) realRel[p.id] = db.rel[p.id].map(function (r) { return typeof r === "string" ? { i: "", d: r } : r; }); });
+    var same = canon(realC, realP, realRel) === canon(cl, pa, rel);
+    /* Appareil sans données propres mais compte déjà rempli : on retire les exemples et on charge les vraies données. */
+    var firstReal = !!((cl.length || pa.length) && !realC.length && !realP.length);
+    if (same && !firstReal) return false;
+
+    var keepDemo = db.demo && !firstReal, dc = [], dp = [], names = {};
+    cl.forEach(function (c) { names[norm(c.n)] = 1; });
+    if (keepDemo) {
+      dc = db.clients.filter(function (c) { return c.x && !names[norm(c.n)]; });
+      dp = db.payments.filter(function (p) { return p.x && !names[norm(p.c)]; });
+    }
+    var nrel = {}; dp.forEach(function (p) { if (db.rel[p.id]) nrel[p.id] = db.rel[p.id]; });
+    Object.keys(rel).forEach(function (k) { nrel[k] = rel[k]; });
+    db.clients = dc.concat(cl); db.payments = dp.concat(pa); db.rel = nrel;
+    if (firstReal || (!dc.length && !dp.length)) { db.demo = false; if (firstReal) { try { localStorage.setItem("pf_demooff", "1"); } catch (e) {} } }
+    save();
+    return !same;
+  }
+  function pull(opt) {
+    opt = opt || {};
+    return getSb().then(function (sb) {
+      if (!sb) return false;
+      return sb.auth.getSession().then(function (r) {
+        var s = r && r.data && r.data.session; if (!s) return false;
+        return flush().then(function () {
+          if (qGet().length) return false;   /* des modifications attendent encore d'être envoyées : on ne remplace rien */
+          return Promise.all([
+            sb.from("clients").select("*").limit(5000), sb.from("paiements").select("*").limit(5000),
+            sb.from("versements").select("*").limit(5000), sb.from("relances").select("*").limit(5000),
+            sb.from("abonnements").select("plan,essai_fin").maybeSingle()
+          ]).then(function (R) {
+            for (var i = 0; i < 4; i++) if (R[i].error) throw R[i].error;
+            return applyPull(R, opt);
+          });
+        });
+      });
+    }).catch(function () { return false; });
+  }
+  /* Recharge la page une seule fois quand la base a apporté du nouveau (évite les boucles). */
+  function reloadOnce() {
+    try { var t = +sessionStorage.getItem("pf_rl") || 0; if (Date.now() - t < 15000) return; sessionStorage.setItem("pf_rl", String(Date.now())); } catch (e) {}
+    location.reload();
+  }
+
   var syncT;
   /* Envoie le profil (et la devise) dans la base, peu après chaque modification. */
   function syncProfile() {
@@ -271,8 +457,7 @@
   }
   /* Tout lien vers la page de connexion depuis l'application (« Se déconnecter ») ferme d'abord la session. */
   document.addEventListener("click", function (ev) {
-    if (/payfollow-connexion/.test(location.pathname)) return;
-    var a = ev.target.closest && ev.target.closest('a[href*="payfollow-connexion"]'); if (!a) return;
+    var a = ev.target.closest && ev.target.closest('a[data-logout]'); if (!a) return;
     ev.preventDefault();
     var href = a.getAttribute("href");
     signOut().then(function () { location.href = href; });
@@ -297,7 +482,8 @@
       clearDemo(); location.reload();
     });
   }
-  function boot() { banner(); paintAvatar(); paintName(); guard(); }
+  var PUBLIC = /payfollow-(accueil|tarifs|conditions|confidentialite|connexion)|\/(index\.html)?$/;
+  function boot() { if (PUBLIC.test(location.pathname)) return; banner(); paintAvatar(); paintName(); guard(); }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 
   window.PF = {
@@ -308,6 +494,6 @@
     relances: relances, allRelances: allRelances, addRelance: addRelance,
     addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, deletePayment: deletePayment,
     monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm,
-    profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut
+    profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut, pull: pull, flush: flush
   };
 })();

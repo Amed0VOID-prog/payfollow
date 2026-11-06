@@ -391,7 +391,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     var inp = $(id), v = inp.value.trim(), m = NAMES.filter(function(n){ return pkNorm(n) === pkNorm(v); })[0];
     if (m) return m;
     if (v && inp.dataset.new === "1"){
-      v = PF.addClient(v); NAMES.push(v);
+      v = PF.addClient(v); if (!v) return null; NAMES.push(v);
       if (window.pfLog) pfLog("Client ajouté : " + v);
       return v;
     }
@@ -419,7 +419,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       if (!dt) return bad($("ed"), "Choisissez une date d’échéance.");
       var cn = pkResolve("ec", $("eer")); if (!cn) return;
       var e2 = paid ? p.e : dt; if (paid && a - got(p) > 0.005) e2 = PF.addDays(PF.today(), 14);
-      PF.updatePayment(p.id, {c:cn, a:a, l:$("el").value, e:e2});
+      if (!PF.updatePayment(p.id, {c:cn, a:a, l:$("el").value, e:e2})) return;
       renderAll(false); openPay(i); toast("Paiement modifié");
     });
   }
@@ -469,7 +469,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       $("pa").removeAttribute("aria-invalid"); $("pd").removeAttribute("aria-invalid");
       if (!(a > 0)){ $("pa").setAttribute("aria-invalid","true"); $("pa").focus(); $("fer").textContent = "Entrez un montant supérieur à 0."; return; }
       if (!dt){ $("pd").setAttribute("aria-invalid","true"); $("pd").focus(); $("fer").textContent = "Choisissez une date d’échéance."; return; }
-      PF.addPayment({c:c,l:$("pl").value,a:a,e:dt});
+      if (!PF.addPayment({c:c,l:$("pl").value,a:a,e:dt})){ close(); return; }
       filter = "all"; query = ""; $("q").value = ""; close(); renderAll(false); toast("Paiement ajouté pour " + c);
     });
   }
