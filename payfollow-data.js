@@ -222,10 +222,66 @@
       else if (/^\s*Bonjour\s*$/.test(t.nodeValue) && (tag === "H1" || tag === "H2") && t.nextSibling && t.nextSibling.nodeType === 1) { t.nextSibling.textContent = n; done = true; }
     }
   }
+  /* ---------- Supabase : session, synchronisation du profil, déconnexion ---------- */
+  var sbP = null;
+  function getSb() {
+    if (sbP) return sbP;
+    if (window.pfSb) return (sbP = window.pfSb);
+    sbP = new Promise(function (res) {
+      var s = document.createElement("script"); s.src = "payfollow-supabase.js";
+      s.onload = function () { res(window.pfSb || null); }; s.onerror = function () { res(null); };
+      document.head.appendChild(s);
+    });
+    return sbP;
+  }
+  function clearLocal() {
+    try { Object.keys(localStorage).filter(function (k) { return k.indexOf("pf_") === 0; }).forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+    db = null;
+  }
+  function signOut() {
+    return getSb().then(function (sb) { return sb ? sb.auth.signOut() : null; }).catch(function () {}).then(clearLocal);
+  }
+  /* Pages privées : sans session, retour à la page de connexion. */
+  function guard() {
+    if (/payfollow-(accueil|tarifs|conditions|confidentialite|connexion)/.test(location.pathname)) return;
+    getSb().then(function (sb) {
+      if (!sb) return null;
+      return sb.auth.getSession().then(function (r) {
+        if (!(r && r.data && r.data.session)) location.replace("payfollow-connexion-v2.html");
+      });
+    }).catch(function () {});
+  }
+  var syncT;
+  /* Envoie le profil (et la devise) dans la base, peu après chaque modification. */
+  function syncProfile() {
+    clearTimeout(syncT);
+    syncT = setTimeout(function () {
+      getSb().then(function (sb) {
+        if (!sb) return null;
+        return sb.auth.getSession().then(function (r) {
+          var s = r && r.data && r.data.session; if (!s) return null;
+          var p = getProfile(), dev = "EUR"; try { dev = localStorage.getItem("pf_devise") || "EUR"; } catch (e) {}
+          return sb.from("profiles").upsert({
+            id: s.user.id, prenom: p.p || "", nom: p.n || "", email: p.e || "", telephone: p.t || "",
+            activite: p.a || "", entreprise: p.o || "", pays: p.y || "", photo: p.ph || "", devise: dev === "XOF" ? "XOF" : "EUR"
+          });
+        });
+      }).then(function (res) { if (res && res.error) console.warn("PayFollow : profil non enregistré dans la base.", res.error.message); }).catch(function () {});
+    }, 400);
+  }
+  /* Tout lien vers la page de connexion depuis l'application (« Se déconnecter ») ferme d'abord la session. */
+  document.addEventListener("click", function (ev) {
+    if (/payfollow-connexion/.test(location.pathname)) return;
+    var a = ev.target.closest && ev.target.closest('a[href*="payfollow-connexion"]'); if (!a) return;
+    ev.preventDefault();
+    var href = a.getAttribute("href");
+    signOut().then(function () { location.href = href; });
+  });
+
   function setProfile(o) {
     var cur = getProfile(); Object.keys(o || {}).forEach(function (k) { cur[k] = o[k]; });
     try { localStorage.setItem(PKEY, JSON.stringify(cur)); } catch (e) { return false; }
-    paintAvatar(); paintName(); return true;
+    paintAvatar(); paintName(); syncProfile(); return true;
   }
 
   function banner() {
@@ -241,7 +297,7 @@
       clearDemo(); location.reload();
     });
   }
-  function boot() { banner(); paintAvatar(); paintName(); }
+  function boot() { banner(); paintAvatar(); paintName(); guard(); }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 
   window.PF = {
@@ -252,6 +308,6 @@
     relances: relances, allRelances: allRelances, addRelance: addRelance,
     addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, deletePayment: deletePayment,
     monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm,
-    profile: getProfile, setProfile: setProfile, initial: initial
+    profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut
   };
 })();

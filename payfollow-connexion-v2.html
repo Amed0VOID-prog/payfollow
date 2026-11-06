@@ -146,6 +146,7 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
   </aside>
 </main>
 
+<script src="payfollow-supabase.js"></script>
 <script>
 (function(){
   var card = document.getElementById("card");
@@ -171,41 +172,98 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
     });
   });
 
-  /* ---- À BRANCHER : Supabase ------------------------------------------
-     Connexion  : await sb.auth.signInWithPassword({ email, password })
-     Inscription: await sb.auth.signUp({ email, password,
-                    options: { data: { prenom: prenom } } })
-     (adaptez « sb » au nom de votre client Supabase)
-  ----------------------------------------------------------------------- */
+  /* ---- Supabase : comptes (projet payfollow-prod) ---- */
+  function getSb(){ return window.pfSb || Promise.resolve(null); }
+
   async function authenticate(mode, d){
-    await new Promise(function(r){ setTimeout(r, 700); });
-    return { demo: true };
+    var sb = await getSb(); if (!sb) throw new Error("lib");
+    if (mode === "signup") {
+      var r = await sb.auth.signUp({ email: d.email, password: d.pw, options: { data: { prenom: d.prenom } } });
+      if (r.error) throw r.error;
+      var u = r.data && r.data.user;
+      /* adresse déjà utilisée : Supabase renvoie un utilisateur sans identité */
+      if (u && u.identities && u.identities.length === 0) { var ex = new Error("exists"); ex.code = "exists"; throw ex; }
+      if (!r.data.session) return { confirm: true, user: u };   /* « Confirm email » activé côté Supabase */
+      return { user: u };
+    }
+    var r2 = await sb.auth.signInWithPassword({ email: d.email, password: d.pw });
+    if (r2.error) throw r2.error;
+    return { user: r2.data.user };
   }
-  /* Google : await sb.auth.signInWithOAuth({ provider: "google",
-                options: { redirectTo: window.location.href } }) */
+
   async function googleSignIn(){
-    await new Promise(function(r){ setTimeout(r, 300); });
-    return { demo: true };
+    var sb = await getSb(); if (!sb) throw new Error("lib");
+    var r = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+    if (r.error) throw r.error;
+  }
+
+  function errText(e){
+    var m = String((e && e.message) || "").toLowerCase();
+    if ((e && e.code === "exists") || m.indexOf("already registered") > -1) return "Un compte existe déjà avec cet e-mail. Connectez-vous.";
+    if (m.indexOf("invalid login") > -1) return "E-mail ou mot de passe incorrect.";
+    if (m.indexOf("not confirmed") > -1) return "Confirmez d’abord votre adresse e-mail : ouvrez le message que nous vous avons envoyé.";
+    if (m.indexOf("rate limit") > -1 || m.indexOf("too many") > -1 || m.indexOf("seconds") > -1) return "Trop de tentatives. Réessayez dans quelques minutes.";
+    if (m.indexOf("password") > -1) return "Mot de passe refusé : choisissez-en un plus long ou plus difficile à deviner.";
+    if (m === "lib" || m.indexOf("fetch") > -1 || m.indexOf("network") > -1) return "Connexion impossible. Vérifiez votre réseau, puis réessayez.";
+    return "Impossible de continuer. Vérifiez vos informations, puis réessayez.";
+  }
+
+  /* Efface les données locales d'un autre compte (le navigateur est partagé entre comptes). */
+  function clearLocal(){
+    try { Object.keys(localStorage).filter(function(k){ return k.indexOf("pf_") === 0; }).forEach(function(k){ localStorage.removeItem(k); }); } catch (e) {}
+  }
+
+  /* Récupère le profil enregistré dans la base. */
+  async function pullProfile(sb, user){
+    try {
+      var r = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
+      var x = r && r.data; if (!x) return null;
+      try { localStorage.setItem("pf_devise", x.devise === "XOF" ? "XOF" : "EUR"); } catch (e) {}
+      return { p: x.prenom || "", n: x.nom || "", e: x.email || user.email || "", t: x.telephone || "", a: x.activite || "", o: x.entreprise || "", y: x.pays || "", ph: x.photo || "" };
+    } catch (e) { return null; }
   }
 
   /* Après connexion : nouveau compte -> page Profil ; compte existant -> tableau de bord. */
-  function enter(isNew, d){
+  async function enter(isNew, d, user){
+    var sb = await getSb(), uid = user && user.id;
     try {
-      var p = JSON.parse(localStorage.getItem("pf_profile") || "{}") || {};
-      if (isNew) p = { p: (d && d.prenom) || "", e: (d && d.email) || "", "new": true };
-      else if (d && d.email && !p.e) p.e = d.email;
-      localStorage.setItem("pf_profile", JSON.stringify(p));
+      var last = localStorage.getItem("pf_uid");
+      if (uid && last && last !== uid) clearLocal();
+      if (uid) localStorage.setItem("pf_uid", uid);
     } catch (e) {}
-    setTimeout(function(){ location.href = isNew ? "payfollow-profil.html" : "payfollow-tableau-de-bord.html"; }, 500);
+    var p = null;
+    if (isNew) {
+      var meta = (user && user.user_metadata) || {};
+      p = { p: (d && d.prenom) || meta.prenom || meta.given_name || "", e: (d && d.email) || (user && user.email) || "", "new": true };
+    } else if (sb && user) {
+      p = await pullProfile(sb, user);
+      if (p && !p.p) p["new"] = true;
+    }
+    if (p) { try { localStorage.setItem("pf_profile", JSON.stringify(p)); } catch (e) {} }
+    var welcome = !!(p && p["new"]);
+    setTimeout(function(){ location.href = welcome ? "payfollow-profil.html" : "payfollow-tableau-de-bord.html"; }, 400);
   }
+
+  /* Déjà connecté (ou retour de Google) : on entre directement. */
+  getSb().then(function(sb){
+    if (!sb) return null;
+    return sb.auth.getSession();
+  }).then(function(r){
+    var s = r && r.data && r.data.session; if (!s) return;
+    var recent = Date.now() - new Date(s.user.created_at).getTime() < 120000;
+    enter(recent, null, s.user);
+  }).catch(function(){});
 
   function say(form, text, kind){ var m = form.querySelector(".msg"); m.textContent = text; m.className = "msg " + kind; }
 
   document.querySelectorAll("[data-google]").forEach(function(b){
     b.addEventListener("click", async function(){
       var form = b.parentNode.querySelector("form");
-      try { await googleSignIn(); say(form, "Un instant…", "ok"); enter(!!b.closest(".p-signup"), null); }
-      catch (e) { say(form, "Connexion avec Google impossible. Réessayez dans un instant.", "err"); }
+      try { await googleSignIn(); say(form, "Redirection vers Google…", "ok"); }
+      catch (e) {
+        var gm = String((e && e.message) || "").toLowerCase();
+        say(form, (gm.indexOf("provider") > -1 || gm.indexOf("not enabled") > -1) ? "La connexion avec Google n’est pas encore activée. Utilisez votre e-mail." : errText(e), "err");
+      }
     });
   });
 
@@ -222,16 +280,20 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
       if (d.pw.length < 6) return bad(f.pw, "Le mot de passe doit contenir au moins 6 caractères.");
       var btn = form.querySelector(".go"), old = btn.textContent;
       btn.disabled = true; btn.textContent = "Un instant…"; say(form, "", "");
-      var ok = false;
+      var res = null;
       try {
-        await authenticate(mode, d);
-        ok = true;
+        res = await authenticate(mode, d);
       } catch (e) {
-        say(form, "Impossible de continuer. Vérifiez vos informations, puis réessayez.", "err");
+        say(form, errText(e), "err");
       }
-      if (ok) {
+      if (res && res.confirm) {
+        say(form, "Compte créé. Un e-mail de confirmation vient de vous être envoyé : ouvrez-le, puis connectez-vous.", "ok");
+        btn.disabled = false; btn.textContent = old;
+        return;
+      }
+      if (res) {
         say(form, mode === "signup" ? "Compte créé. Un instant…" : "Connexion réussie. Un instant…", "ok");
-        enter(mode === "signup", d);
+        enter(mode === "signup", d, res.user);
         return;
       }
       btn.disabled = false; btn.textContent = old;

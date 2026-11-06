@@ -283,7 +283,7 @@ var tt;function toast(t){var e=$("toast");e.textContent=t;e.classList.add("on");
 /* Devise */
 var m=$("cur"),c="EUR";try{c=localStorage.getItem("pf_devise")||"EUR"}catch(e){}
 function mk(){m.querySelectorAll("[data-cur]").forEach(function(b){b.setAttribute("aria-checked",b.dataset.cur===c?"true":"false")})}
-m.addEventListener("click",function(e){var b=e.target.closest("[data-cur]");if(!b)return;c=b.dataset.cur;try{localStorage.setItem("pf_devise",c)}catch(x){}mk();toast("Devise modifiée")});mk();
+m.addEventListener("click",function(e){var b=e.target.closest("[data-cur]");if(!b)return;c=b.dataset.cur;try{localStorage.setItem("pf_devise",c)}catch(x){}mk();PF.syncProfile();toast("Devise modifiée")});mk();
 
 /* Profil */
 var P=PF.profile(),welcome=!!P.new;
