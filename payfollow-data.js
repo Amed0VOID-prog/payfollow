@@ -159,6 +159,39 @@
     save(); return gone.length;
   }
 
+  /* ---------- Import d'un fichier (Pack Pro) ---------- */
+  function isPro() { return !limited(); }
+  /* Ce que la base contient déjà de « vrai » (hors exemples), pour repérer les doublons dans l'aperçu */
+  function importInfo() {
+    load();
+    return {
+      demo: !!db.demo,
+      pro: !limited(),
+      clients: db.clients.filter(function (c) { return !c.x; }).map(function (c) { return c.n; }),
+      keys: db.payments.filter(function (p) { return !p.x; }).map(function (p) { return norm(p.c) + "|" + norm(p.l) + "|" + money(p.a) + "|" + p.e; })
+    };
+  }
+  function importBatch(items) {
+    load();
+    if (limited()) return { ok: false, err: "pro" };
+    if (db.demo) clearDemo();
+    var newC = [], newP = [], touched = [], i, c, it, p, n;
+    for (i = 0; i < items.length; i++) {
+      it = items[i]; n = String(it.c || "").trim(); if (!n) continue;
+      c = find(n);
+      if (!c) { c = { id: uuid(), n: n, e: it.e || "", t: it.t || "", k: today() }; db.clients.push(c); newC.push(c); }
+      else if ((!c.e && it.e) || (!c.t && it.t)) { if (!c.e) c.e = it.e || ""; if (!c.t) c.t = it.t || ""; if (newC.indexOf(c) < 0 && touched.indexOf(c) < 0) touched.push(c); }
+      p = { id: uuid(), c: c.n, l: String(it.l || "").trim() || "Paiement", a: money(it.a), e: it.d, k: today(), v: [] };
+      db.payments.push(p); newP.push(p);
+    }
+    save();
+    function chunks(arr, f, kind) { for (var k = 0; k < arr.length; k += 100) enqueue({ k: kind, d: arr.slice(k, k + 100).map(f) }); }
+    chunks(newC, function (x) { return { id: x.id, nom: x.n, email: x.e || "", telephone: x.t || "", cree_le: x.k || today() }; }, "clb");
+    touched.forEach(function (x) { syncClient(x); });
+    chunks(newP, function (x) { var cl = find(x.c); return { id: x.id, client_id: cl.id, libelle: x.l, montant: x.a, echeance: x.e, cree_le: x.k || today() }; }, "pab");
+    return { ok: true, clients: newC.length, payments: newP.length };
+  }
+
   /* ---------- Lecture ---------- */
   function view(p) {
     var g = sum(p.v), r = Math.max(0, p.a - g), done = r <= 0.005 && p.a > 0, last = p.e;
@@ -402,6 +435,8 @@
     var d = op.d, T = { cl: "clients", pa: "paiements", ve: "versements", re: "relances" };
     if (op.k === "dc") return sb.from("clients").delete().eq("id", op.id);
     if (op.k === "dp") return sb.from("paiements").delete().eq("id", op.id);
+    /* envois groupés (import de fichier) : jusqu'à 100 lignes d'un coup */
+    if (op.k === "clb" || op.k === "pab") return sb.from(op.k === "clb" ? "clients" : "paiements").upsert((op.d || []).map(function (r) { return Object.assign({ user_id: uid }, r); }));
     if (T[op.k]) return sb.from(T[op.k]).upsert(Object.assign({ user_id: uid }, d));
     return Promise.resolve({});
   }
@@ -570,6 +605,6 @@
     relances: relances, allRelances: allRelances, addRelance: addRelance,
     addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, deletePayment: deletePayment,
     monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm,
-    profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut, deleteAccount: deleteAccount, pull: pull, flush: flush
+    profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut, deleteAccount: deleteAccount, isPro: isPro, importInfo: importInfo, importBatch: importBatch, pull: pull, flush: flush
   };
 })();
