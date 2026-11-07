@@ -248,6 +248,7 @@ button.skip{border:0;background:none;width:100%}
 <section class="pc rv" style="--i:1"><span class="big2" id="bigav" aria-hidden="true"></span><div><h2 id="pname">Mon compte</h2><span class="sub">Essai gratuit du pack Pro en cours</span><div class="pb"><button type="button" class="lk" id="chg">Changer la photo</button><button type="button" class="lk dg" id="rmv" hidden>Retirer</button></div></div><input type="file" id="file" accept="image/*" hidden></section>
 <section class="cpick rv" id="cur" style="--i:2"><h2>Devise de mon compte</h2><div class="sub">Tous les montants du site s’affichent dans cette devise.</div><div class="opts"><button type="button" data-cur="EUR" aria-checked="true">Euro <b>€</b></button><button type="button" data-cur="XOF" aria-checked="false">Franc CFA <b>FCFA</b></button></div></section>
 <section class="pf rv" id="pview" style="--i:3" hidden><h2>Mes informations</h2><ul class="info" id="plist"></ul><button type="button" class="go2" id="pedit">Modifier le profil</button></section>
+<section class="pf rv" id="poffre" style="--i:2"><h2>Mon offre</h2><p id="poffre-t" style="margin:4px 0 14px;color:var(--mut)">Gratuit</p><a href="payfollow-tarifs.html" style="display:grid;place-items:center;height:50px;border-radius:99px;border:1.5px solid var(--g);color:var(--g);font-weight:700;text-decoration:none">Voir les offres</a></section>
 <form class="pf fm rv" id="pform" style="--i:3" novalidate>
 <h2>Mes informations</h2>
 <label class="fl" for="f-p">Prénom</label><div class="f"><input id="f-p" type="text" autocomplete="given-name" maxlength="40" placeholder="Prénom"></div>
@@ -337,6 +338,10 @@ $("pform").addEventListener("submit",function(ev){ev.preventDefault();
  if(welcome){setTimeout(function(){location.href="payfollow-tableau-de-bord.html"},600);return}
  renderView();show("view");window.scrollTo(0,0)});
 $("skip").addEventListener("click",function(){PF.setProfile({"new":false})});
+
+/* Mon offre */
+function offre(){var i=PF.planInfo(),t=i.paid?"Pack Pro":i.trialActive?"Pack Pro · essai gratuit jusqu’au "+PF.fmtFr(i.fin):i.trialAvailable?"Gratuit · 3 mois de Pack Pro offerts disponibles":i.trialOver?"Gratuit · essai Pro terminé":"Gratuit";$("poffre-t").textContent=t}
+offre();PF.refreshPlan().then(function(){offre()});
 
 /* Supprimer mon compte : confirmation en tapant SUPPRIMER */
 $("pdel").addEventListener("click",function(){

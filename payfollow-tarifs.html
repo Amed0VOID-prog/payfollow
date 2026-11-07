@@ -11,7 +11,7 @@ a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}:focus-v
 .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px;letter-spacing:-.02em}.brand b{color:var(--g)}.brand svg{width:30px;height:30px;color:var(--g)}
 .nav nav{display:flex;align-items:center;gap:4px}.nav nav a:not(.btn){padding:8px 12px;font-weight:600;color:var(--mut)}
 .btn{display:inline-grid;place-items:center;height:50px;padding:0 26px;border-radius:99px;background:var(--g);color:#fff;font-weight:700;border:0;box-shadow:0 10px 22px rgba(31,122,61,.22);transition:background .2s,transform .2s}.btn:hover{background:var(--gd);transform:translateY(-1px)}
-.btn{white-space:nowrap}.btn.sm{height:40px;padding:0 16px;font-size:14px;box-shadow:none}.nav nav a:not(.btn){padding:8px 10px}.btn.ghost{background:#fff;color:var(--g);border:1.5px solid var(--g);box-shadow:none}
+.btn{white-space:nowrap}.btn.sm{height:40px;padding:0 16px;font-size:14px;box-shadow:none}.nav nav a:not(.btn){padding:8px 10px}.btn.off{opacity:.6;pointer-events:none;box-shadow:none}.btn.ghost{background:#fff;color:var(--g);border:1.5px solid var(--g);box-shadow:none}
 .hero{margin-top:12px;border-radius:30px;text-align:center;padding:48px 20px 96px;background:radial-gradient(ellipse at 20% 0%,#cfeadb 0,transparent 55%),radial-gradient(ellipse at 90% 30%,#e3f1ea 0,transparent 50%),#f9fcfa;border:1px solid var(--line)}
 h1{font-size:clamp(32px,8vw,58px);line-height:1.06;letter-spacing:-.035em;margin:0 auto 14px;max-width:720px}h1 em{font-style:normal;color:var(--g)}
 h2{font-size:clamp(25px,5vw,36px);letter-spacing:-.025em;line-height:1.15;margin:0 0 8px}.lead{font-size:18px;color:var(--mut);margin:0 auto 24px;max-width:520px}
@@ -44,14 +44,15 @@ footer{padding:20px 0 40px;color:var(--mut);font-size:14px}footer .w{display:fle
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto}.js .rv{opacity:1;transform:none}}
 </style><script>document.documentElement.className="js"</script></head><body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="0 0 40 40"><path d="M8 11.5 25 6.5l2.2 5.3H8z" fill="currentColor" opacity=".7" transform="rotate(-8 8 11)"/><rect x="4" y="12" width="32" height="23" rx="5" fill="currentColor"/><rect x="22" y="19" width="14" height="9" rx="4.5" fill="#fff"/><circle cx="27" cy="23.5" r="1.8" fill="currentColor"/></symbol></svg>
-<div class="nav"><a class="brand" href="payfollow-accueil.html"><svg><use href="#lg"/></svg><span>Pay<b>Follow</b></span></a><nav><a href="payfollow-accueil.html">Accueil</a><a class="btn sm" href="payfollow-connexion-v2.html">Se connecter</a></nav></div>
+<div class="nav"><a class="brand" href="payfollow-accueil.html"><svg><use href="#lg"/></svg><span>Pay<b>Follow</b></span></a><nav><a href="payfollow-accueil.html">Accueil</a><a class="btn sm" id="navAct" href="payfollow-connexion-v2.html">Se connecter</a></nav></div>
 <main class="w">
 <div class="hero" style="padding-bottom:40px"><h1>Des tarifs simples</h1><p class="lead">Commence gratuitement. Passe à Pro quand tu en as besoin.</p>
 <div class="tg" role="group" aria-label="Devise"><button data-c="EUR" aria-pressed="true">€ Euro</button><button data-c="XOF" aria-pressed="false">FCFA</button></div></div>
 <section style="padding-top:24px"><div class="offer rv" style="padding:16px 20px;border-radius:20px"><b>Testeurs : 3 mois du pack Pro offerts</b> <span style="color:#c9d3ce">· 10 places, accompagnement personnel</span></div>
+<p id="planMsg" role="status" hidden style="text-align:center;margin:14px 0 0;font-weight:600"></p>
 <div class="grid g3">
-<div class="card plan rv"><h3>Gratuit</h3><div class="price"><span data-p="0">0 €</span></div><ul><li>Clients et paiements</li><li>Versements partiels</li><li>Messages de relance prêts</li><li>Export des paiements</li></ul><a class="btn ghost" style="width:100%" href="payfollow-connexion-v2.html">Commencer</a></div>
-<div class="card plan hot rv"><span class="tag">Le plus choisi</span><h3>Pro</h3><div class="price"><span data-p="4">4 €</span> <small>/mois</small></div><ul><li>Tout le pack Gratuit</li><li>Import Excel/CSV de tes clients et paiements</li><li>Exports Clients et Relances</li><li>Historique complet</li><li>Modèles de relance personnalisables</li><li>Tableau de bord avancé</li></ul><a class="btn" style="width:100%" href="payfollow-connexion-v2.html">Essayer 3 mois offerts</a></div>
+<div class="card plan rv"><h3>Gratuit</h3><div class="price"><span data-p="0">0 €</span></div><ul><li>Clients et paiements</li><li>Versements partiels</li><li>Messages de relance prêts</li><li>Export des paiements</li></ul><a class="btn ghost" id="btnFree" style="width:100%" href="payfollow-connexion-v2.html">Commencer</a></div>
+<div class="card plan hot rv"><span class="tag">Le plus choisi</span><h3>Pro</h3><div class="price"><span data-p="4">4 €</span> <small>/mois</small></div><ul><li>Tout le pack Gratuit</li><li>Import Excel/CSV de tes clients et paiements</li><li>Exports Clients et Relances</li><li>Historique complet</li><li>Modèles de relance personnalisables</li><li>Tableau de bord avancé</li></ul><a class="btn" id="btnPro" style="width:100%" href="payfollow-connexion-v2.html">Essayer 3 mois offerts</a></div>
 <div class="card plan rv"><span class="tag soon">Bientôt</span><h3>Premium</h3><div class="price"><span data-p="9">9 €</span> <small>/mois</small></div><ul><li>Tout le pack Pro</li><li>Relances automatiques</li><li>Notifications : qui est en retard, de combien, relance envoyée</li></ul><a class="btn ghost" style="width:100%" href="mailto:kaboreabdoulakim70@gmail.com?subject=Premium%20PayFollow">Me prévenir</a></div></div></section>
 <section><h2 class="rv">Questions fréquentes</h2>
 <details class="rv"><summary>Comment annuler ?</summary><p>À tout moment, sans engagement.</p></details>
@@ -61,6 +62,34 @@ footer{padding:20px 0 40px;color:var(--mut);font-size:14px}footer .w{display:fle
 <details class="rv"><summary>Que deviennent mes données si je pars ?</summary><p>Tu peux exporter tes paiements vers Excel avant de partir.</p></details></section>
 </main>
 <footer><div class="w"><span>© PayFollow</span><span><a href="payfollow-conditions.html">Conditions d’utilisation</a> · <a href="payfollow-confidentialite.html">Confidentialité</a> · <a href="mailto:kaboreabdoulakim70@gmail.com">Contact</a></span></div></footer>
+<script src="payfollow-data.js"></script>
+<script>
+(function(){
+  if(!window.PF) return;
+  var $=function(i){return document.getElementById(i)}, free=$("btnFree"), pro=$("btnPro"), nav=$("navAct"), msg=$("planMsg");
+  function say(t,err){msg.hidden=!t;msg.textContent=t||"";msg.style.color=err?"var(--red,#c62828)":"var(--gd,#176330)"}
+  function off(a,txt){a.textContent=txt;a.classList.add("off");a.removeAttribute("href");a.setAttribute("aria-disabled","true")}
+  function on(a,txt,href){a.textContent=txt;a.classList.remove("off");a.removeAttribute("aria-disabled");a.setAttribute("href",href)}
+  function render(i){
+    nav.textContent="Mon espace";nav.setAttribute("href","payfollow-tableau-de-bord.html");
+    if(i.paid){off(pro,"Offre actuelle");on(free,"Mon espace","payfollow-tableau-de-bord.html");say("Votre offre : Pack Pro.")}
+    else if(i.trialActive){off(pro,"Essai actif jusqu’au "+PF.fmtFr(i.fin));on(free,"Mon espace","payfollow-tableau-de-bord.html");say("Essai gratuit du Pack Pro jusqu’au "+PF.fmtFr(i.fin)+".")}
+    else if(i.trialAvailable){off(free,"Offre actuelle");on(pro,"Activer mes 3 mois offerts","#");pro.dataset.trial="1";say("Votre offre : Gratuit. Vous avez 3 mois de Pack Pro offerts.")}
+    else if(i.trialOver){off(free,"Offre actuelle");off(pro,"Paiement bientôt disponible");say("Votre essai Pro est terminé. Le paiement du Pack Pro sera bientôt disponible.")}
+    else{off(free,"Offre actuelle")}
+  }
+  PF.refreshPlan().then(function(i){ if(i) render(i); });
+  pro.addEventListener("click",function(e){
+    if(pro.dataset.trial!=="1") return; e.preventDefault();
+    pro.classList.add("off");pro.textContent="Activation…";say("");
+    PF.startTrial().then(function(r){
+      if(r&&r.ok){delete pro.dataset.trial;render(PF.planInfo());return}
+      pro.classList.remove("off");pro.textContent="Activer mes 3 mois offerts";
+      say(r&&r.err==="deja"?"Votre essai gratuit a déjà été utilisé.":r&&r.err==="absent"?"L’activation n’est pas encore disponible. Réessayez plus tard.":r&&r.err==="session"?"Votre session a expiré. Reconnectez-vous, puis réessayez.":"Activation impossible. Vérifiez votre connexion et réessayez.",true);
+    });
+  });
+})();
+</script>
 <script>
 (function(){var rm=matchMedia("(prefers-reduced-motion: reduce)").matches;
 function f(n,u){return Math.round(n).toLocaleString("fr-FR")+(u||"")}

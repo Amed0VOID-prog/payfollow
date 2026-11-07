@@ -417,6 +417,47 @@
       return signOut().then(function () { return { ok: true }; });
     }
   }
+  /* ---------- Offre : lecture et essai Pro gratuit de 3 mois ---------- */
+  var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+  function fmtFr(iso) { var p = String(iso || "").slice(0, 10).split("-"); return p.length === 3 ? (+p[2]) + " " + MOIS[(+p[1]) - 1] + " " + p[0] : ""; }
+  function planInfo() {
+    var p = plan(), paid = p.plan === "pro" || p.plan === "premium", trial = p.plan === "gratuit" && !!p.fin && p.fin >= today();
+    return { known: !!p.plan, plan: p.plan || "", fin: p.fin || "", paid: paid, trialActive: trial,
+             trialAvailable: p.plan === "gratuit" && !p.fin, trialOver: p.plan === "gratuit" && !!p.fin && p.fin < today(), pro: !limited() };
+  }
+  /* Offre à jour depuis la base ; renvoie null si personne n'est connecté. */
+  function refreshPlan() {
+    return after(getSb(), 8000).then(function (sb) {
+      if (!sb || sb.timeout) return null;
+      return after(sb.auth.getSession(), 8000).then(function (r) {
+        if (!(r && r.data && r.data.session)) return null;
+        return after(sb.from("abonnements").select("plan,essai_fin").maybeSingle(), 10000).then(function (res) {
+          var ab = res && res.data;
+          if (ab) { try { localStorage.setItem("pf_plan", JSON.stringify({ plan: ab.plan, fin: ab.essai_fin || "" })); } catch (e) {} }
+          return true;
+        });
+      });
+    }).then(function (ok) { return ok ? planInfo() : null; }, function () { return null; });
+  }
+  function startTrial() {
+    return after(getSb(), 8000).then(function (sb) {
+      if (!sb || sb.timeout) return { ok: false, err: "reseau" };
+      return after(sb.rpc("activer_essai_pro"), 15000).then(function (res) {
+        if (!res || res.timeout) return { ok: false, err: "reseau" };
+        if (res.error) {
+          var m = String(res.error.message || ""), c = String(res.error.code || "");
+          if (c === "PGRST202" || /could not find|schema cache/i.test(m)) return { ok: false, err: "absent" };
+          if (/ESSAI_DEJA_UTILISE/.test(m)) return { ok: false, err: "deja" };
+          if (/DEJA_PRO/.test(m)) return { ok: false, err: "pro" };
+          if (/NON_CONNECTE/.test(m)) return { ok: false, err: "session" };
+          return { ok: false, err: "reseau" };
+        }
+        var fin = String(res.data || "").slice(0, 10);
+        try { localStorage.setItem("pf_plan", JSON.stringify({ plan: "gratuit", fin: fin })); } catch (e) {}
+        return { ok: true, fin: fin };
+      });
+    }).catch(function () { return { ok: false, err: "reseau" }; });
+  }
   /* Pages privées : sans session, retour à la page de connexion. */
   function guard() {
     if (/payfollow-(accueil|tarifs|conditions|confidentialite|connexion)/.test(location.pathname)) return;
@@ -605,6 +646,6 @@
     relances: relances, allRelances: allRelances, addRelance: addRelance,
     addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, deletePayment: deletePayment,
     monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm,
-    profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut, deleteAccount: deleteAccount, isPro: isPro, importInfo: importInfo, importBatch: importBatch, pull: pull, flush: flush
+    profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut, deleteAccount: deleteAccount, isPro: isPro, planInfo: planInfo, refreshPlan: refreshPlan, startTrial: startTrial, fmtFr: fmtFr, importInfo: importInfo, importBatch: importBatch, pull: pull, flush: flush
   };
 })();

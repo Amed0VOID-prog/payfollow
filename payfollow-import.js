@@ -313,6 +313,8 @@
       return '<label for="pfi-m-' + f.k + '">' + f.label + (f.req ? " *" : "") + '</label><select id="pfi-m-' + f.k + '" data-k="' + f.k + '">' + o + "</select>";
     }).join("");
     var h = '<h2 id="pfi-t">Aperçu de l’import</h2><p style="margin-bottom:4px">' + esc(S.name) + "</p>";
+    if (S.okMsg) h += '<div class="pfi-note" role="status">' + esc(S.okMsg) + "</div>";
+    if (S.err) h += '<div class="pfi-err" role="alert">' + esc(S.err) + "</div>";
     if (missing.length) {
       h += '<div class="pfi-err" role="alert">Je ne trouve pas la colonne : <b>' + missing.map(function (f) { return f.label; }).join(", ") + "</b>. Choisissez-la ci-dessous.</div>";
     } else {
@@ -332,8 +334,17 @@
     h += '<details' + (missing.length ? " open" : "") + "><summary>Colonnes détectées</summary>" + sel + "<small>* obligatoire</small></details>";
     if (!missing.length) {
       if (inf.pro) h += '<button type="button" class="pfi-btn" id="pfi-go"' + (R.ok.length ? "" : " disabled") + ' data-focus>Importer ' + R.ok.length + " paiement" + (R.ok.length > 1 ? "s" : "") + "</button>";
-      else h += '<div class="pfi-note">L’import des fichiers fait partie du Pack Pro. Votre aperçu est prêt : il suffit de passer au Pack Pro pour l’importer.</div>' +
-        '<a class="pfi-btn" href="payfollow-tarifs.html" data-focus>Passer au Pack Pro</a>';
+      else {
+        var pi = PF.planInfo ? PF.planInfo() : {};
+        if (pi.trialAvailable) {
+          h += '<div class="pfi-note">L’import fait partie du Pack Pro. Activez vos 3 mois offerts, sans carte bancaire, pour l’importer tout de suite.</div>' +
+            '<button type="button" class="pfi-btn" id="pfi-trial" data-focus>Activer mes 3 mois offerts</button>' +
+            '<a class="pfi-alt" href="payfollow-tarifs.html">Voir les offres</a>';
+        } else {
+          h += '<div class="pfi-note">L’import des fichiers fait partie du Pack Pro. Votre aperçu est prêt : il suffit de passer au Pack Pro pour l’importer.</div>' +
+            '<a class="pfi-btn" href="payfollow-tarifs.html" data-focus>Voir les offres</a>';
+        }
+      }
     }
     h += '<button type="button" class="pfi-alt" id="pfi-re">Choisir un autre fichier</button><button type="button" class="pfi-alt" id="pfi-x">Annuler</button>';
     shell(h);
@@ -342,6 +353,20 @@
     });
     overlay.querySelector("#pfi-re").addEventListener("click", function () { S = null; stepChoose(); });
     overlay.querySelector("#pfi-x").addEventListener("click", shut);
+    var tr = overlay.querySelector("#pfi-trial");
+    if (tr) tr.addEventListener("click", function () {
+      tr.disabled = true; tr.textContent = "Activation…"; S.err = "";
+      PF.startTrial().then(function (r) {
+        if (!overlay || !S) return;
+        if (r && r.ok) { S.okMsg = "Essai Pro activé jusqu’au " + PF.fmtFr(r.fin) + ". Vous pouvez importer."; S.err = ""; }
+        else S.err = r && r.err === "deja" ? "Votre essai gratuit a déjà été utilisé. Voyez les offres pour continuer."
+          : r && r.err === "pro" ? "Votre compte est déjà en Pack Pro."
+          : r && r.err === "absent" ? "L’activation n’est pas encore disponible. Réessayez plus tard."
+          : r && r.err === "session" ? "Votre session a expiré. Reconnectez-vous, puis réessayez."
+          : "Activation impossible. Vérifiez votre connexion et réessayez.";
+        stepPreview();
+      });
+    });
     var go = overlay.querySelector("#pfi-go");
     if (go) go.addEventListener("click", function () {
       go.disabled = true; go.textContent = "Import en cours…";
