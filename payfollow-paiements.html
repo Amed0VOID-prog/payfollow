@@ -41,6 +41,8 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 .top p{margin:2px 0 0;color:var(--mut)}
 .add{border:0;background:var(--g);color:#fff;font-weight:700;padding:11px 18px;border-radius:99px;white-space:nowrap;transition:background .2s,transform .2s}
 .add:hover{background:var(--gd);transform:translateY(-1px)}
+.tact{display:flex;gap:8px}
+.ghost{border:1.5px solid var(--g);background:#fff;color:var(--g);font:inherit;font-weight:700;padding:10px 18px;border-radius:99px;white-space:nowrap;cursor:pointer}
 .sub{color:var(--mut);font-size:13px}
 
 .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -184,7 +186,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 .tb>*{align-content:center;align-items:center;justify-content:center;line-height:1.2;text-decoration:none}
 
 .menu{display:none!important}.avt,.av{display:grid;place-items:center;text-decoration:none}
-@media (max-width:899px){.top{flex-direction:column;align-items:stretch;gap:12px}.top .add{width:100%;padding:13px 18px;font-size:15px}}
+@media (max-width:899px){.top{flex-direction:column;align-items:stretch;gap:12px}.top .tact .add{width:auto;flex:1;padding:13px 18px;font-size:15px}.top .tact .ghost{padding:12px 18px;font-size:15px}}
 .pov{position:fixed;inset:0;z-index:55}.pov[hidden],.ps[hidden]{display:none}
 .ps{position:fixed;right:10px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:60;width:232px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:8px;box-shadow:0 16px 38px rgba(16,25,58,.16)}
 .ps a{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;color:var(--navy);text-decoration:none;font-weight:600;font-size:15px}
@@ -208,6 +210,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 </style>
 </head>
 <body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script><script src="payfollow-data.js"></script>
+<script src="payfollow-import.js"></script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="lg" viewBox="0 0 40 40"><path d="M8 11.5 25 6.5l2.2 5.3H8z" fill="currentColor" opacity=".7" transform="rotate(-8 8 11)"/><rect x="4" y="12" width="32" height="23" rx="5" fill="currentColor"/><rect x="22" y="19" width="14" height="9" rx="4.5" fill="var(--cl)"/><circle cx="27" cy="23.5" r="1.8" fill="currentColor"/></symbol>
 </svg>
@@ -230,7 +233,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 </header>
 
 <main>
-  <div class="top rv"><div><h1>Paiements</h1><p>Ce qui est payé, et ce qui reste.</p></div><button class="add" id="addBtn">+ Nouveau paiement</button></div>
+  <div class="top rv"><div><h1>Paiements</h1><p>Ce qui est payé, et ce qui reste.</p></div><div class="tact"><button type="button" class="ghost" id="rapBtn">Ajout rapide</button><button class="add" id="addBtn">+ Nouveau paiement</button></div></div>
   <section class="stats" id="stats"></section>
   <div class="tools rv" style="--i:5">
     <label class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Rechercher un client ou un paiement" aria-label="Rechercher un paiement"></label>
@@ -478,7 +481,8 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   function wireSoon(root){ root.querySelectorAll("[data-soon]").forEach(function(b){ b.onclick = function(){ toast("Cette page sera construite à la prochaine étape"); }; }); }
   wireSoon(document);
 
-  $("addBtn").addEventListener("click", openForm); 
+  $("addBtn").addEventListener("click", openForm);
+  $("rapBtn").addEventListener("click", function(){ if (window.PFImport) PFImport.quick(); }); 
   $("list").addEventListener("click", function(e){ var r = e.target.closest(".row"); if (r) openPay(+r.dataset.i); });
   $("list").addEventListener("keydown", function(e){ if (e.key === "Enter" || e.key === " "){ var r = e.target.closest(".row"); if (r){ e.preventDefault(); openPay(+r.dataset.i); } } });
   $("chips").addEventListener("click", function(e){ var b = e.target.closest("button"); if (!b) return; filter = b.dataset.f; renderChips(); renderList(); });

@@ -246,9 +246,15 @@
     ".pfi details{margin:8px 0;border:1.5px solid #e1e7e4;border-radius:14px;padding:4px 12px}.pfi summary{min-height:44px;display:flex;align-items:center;font-weight:700;font-size:14px;cursor:pointer}" +
     ".pfi label{display:block;font-size:13px;font-weight:700;margin:8px 0 4px}" +
     ".pfi select{width:100%;height:46px;border:1.5px solid #e1e7e4;border-radius:12px;padding:0 10px;font:inherit;font-size:15px;background:#fff;color:#10193a}" +
-    ".pfi small{display:block;color:#5d6a64;font-size:13px;line-height:1.45;margin-top:6px}";
+    ".pfi small{display:block;color:#5d6a64;font-size:13px;line-height:1.45;margin-top:6px}" +
+    ".pfi input[type=text],.pfi input[type=date]{width:100%;height:48px;border:1.5px solid #e1e7e4;border-radius:12px;padding:0 12px;font:inherit;font-size:16px;background:#fff;color:#10193a;box-sizing:border-box}" +
+    ".pfi .pfi-ok{color:#176330;font-weight:600}.pfi .pfi-new{color:#5d6a64}";
+  function css() {
+    if (document.getElementById("pfi-css")) return;
+    var st = document.createElement("style"); st.id = "pfi-css"; st.textContent = CSS; document.head.appendChild(st);
+  }
 
-  var S = null, overlay = null, onKey = null;
+  var S = null, Q = null, overlay = null, onKey = null;
 
   function info() {
     var i = (window.PF && PF.importInfo) ? PF.importInfo() : { demo: false, clients: [], keys: [], pro: false };
@@ -256,7 +262,7 @@
   }
   function shut() {
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-    overlay = null; S = null;
+    overlay = null; S = null; Q = null;
     if (onKey) { document.removeEventListener("keydown", onKey); onKey = null; }
   }
   function shell(html) {
@@ -390,7 +396,7 @@
 
   function open() {
     if (overlay) return;
-    if (!document.getElementById("pfi-css")) { var st = document.createElement("style"); st.id = "pfi-css"; st.textContent = CSS; document.head.appendChild(st); }
+    css();
     overlay = document.createElement("div"); overlay.className = "pfi";
     overlay.setAttribute("role", "dialog"); overlay.setAttribute("aria-modal", "true"); overlay.setAttribute("aria-labelledby", "pfi-t");
     overlay.innerHTML = '<div class="pfi-b"></div>';
@@ -401,5 +407,150 @@
     stepChoose();
   }
 
-  window.PFImport = { open: open, _t: { parseAmount: parseAmount, parseDate: parseDate, autoMap: autoMap, findHeader: findHeader, parseCSV: parseCSV } };
+
+  /* ================= Ajout rapide d'un paiement : « Studio Kora 150000 15/12 » ================= */
+  function isoLocal(d) { return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()); }
+  function plusDays(n) { var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n); return isoLocal(d); }
+  function yearless(day, mon) {
+    var now = new Date(), y = now.getFullYear(), iso = mkDate(y, mon, day);
+    if (!iso) return null;
+    if (iso < plusDays(-60)) iso = mkDate(y + 1, mon, day);
+    return iso;
+  }
+  var MON_RE = "janv(?:ier)?|f[ée]vr(?:ier)?|mars|avr(?:il)?|mai|juin|juil(?:let)?|ao[uû]t|sept(?:embre)?|oct(?:obre)?|nov(?:embre)?|d[ée]c(?:embre)?";
+  function monthOf(w) { var k = norm(w).replace(/\s/g, ""); return MONTHS[k.slice(0, 4)] || MONTHS[k.slice(0, 3)] || 0; }
+  var CONN = { le: 1, la: 1, pour: 1, avant: 1, echeance: 1, montant: 1, de: 1, du: 1, au: 1, a: 1, d: 1, ici: 1, payer: 1, fcfa: 1, cfa: 1 };
+  function trimConn(t) {
+    var w = t.replace(/[,;:–—-]+\s*$/, "").replace(/^\s*[,;:–—-]+/, "").trim().split(/\s+/).filter(Boolean);
+    while (w.length && CONN[norm(w[w.length - 1])] ) w.pop();
+    while (w.length && CONN[norm(w[0])] && w.length > 1) w.shift();
+    return w.join(" ").replace(/[,;:–—-]+\s*$/, "").trim();
+  }
+  function parseQuick(text, names) {
+    var s = " " + String(text || "").replace(/[\u00a0\u202f]/g, " ").replace(/\s+/g, " ").trim() + " ", date = null, m, out = { c: "", l: "", a: null, d: null, known: false };
+    function cut(re) { s = s.replace(re, " "); }
+    if ((m = /\bapr[eè]s[- ]demain\b/i.exec(s))) { date = plusDays(2); cut(m[0]); }
+    else if ((m = /\bdemain\b/i.exec(s))) { date = plusDays(1); cut(m[0]); }
+    else if ((m = /\baujourd['’ ]?hui\b/i.exec(s))) { date = plusDays(0); cut(m[0]); }
+    else if ((m = /\bdans (\d{1,3}) (jours?|semaines?|mois)\b/i.exec(s))) {
+      var n = +m[1], u = m[2].toLowerCase(); date = plusDays(u.indexOf("sem") === 0 ? n * 7 : u === "mois" ? n * 30 : n); cut(m[0]);
+    } else if ((m = /\bfin (?:du |de )?mois\b/i.exec(s))) { var e = new Date(); e = new Date(e.getFullYear(), e.getMonth() + 1, 0, 12); date = isoLocal(e); cut(m[0]); }
+    if (!date && (m = /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/.exec(s))) { date = mkDate(+m[1], +m[2], +m[3]); if (date) cut(m[0]); }
+    if (!date && (m = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{4}|\d{2})(?!\d)/.exec(s))) { date = mkDate(+m[3], +m[2], +m[1]); if (date) cut(m[0]); }
+    if (!date && (m = /(\d{1,2})(?:er)?\s+(janv(?:ier)?|f[ée]vr(?:ier)?|mars|avr(?:il)?|mai|juin|juil(?:let)?|ao[uû]t|sept(?:embre)?|oct(?:obre)?|nov(?:embre)?|d[ée]c(?:embre)?)\.?(?:\s+(\d{4}))?/i.exec(s))) {
+      var mo = monthOf(m[2]); date = mo ? (m[3] ? mkDate(+m[3], mo, +m[1]) : yearless(+m[1], mo)) : null; if (date) cut(m[0]);
+    }
+    if (!date && (m = /(\d{1,2})[/-](\d{1,2})(?![\d/-])/.exec(s))) { date = yearless(+m[1], +m[2]); if (date) cut(m[0]); }
+    out.d = date;
+    /* montant : de préférence celui qui est suivi d'une devise ou qui termine la phrase */
+    var re = /(\d{1,3}(?:[ .,]\d{3})+(?:[.,]\d{1,2})?(?!\d)|\d+(?:[.,]\d{1,2})?)\s*(fcfa|f cfa|cfa|xof|francs?|€|eur(?:os?)?|f(?![a-zà-ÿ]))?/gi, cands = [];
+    while ((m = re.exec(s))) {
+      var v = parseAmount(m[1]); if (v == null) continue;
+      cands.push({ v: v, raw: m[0], at: m.index, cur: !!m[2], end: s.slice(m.index + m[0].length).trim() === "" });
+    }
+    var pick = null, i;
+    for (i = cands.length - 1; i >= 0; i--) if (cands[i].cur || cands[i].end) { pick = cands[i]; break; }
+    if (!pick && cands.length) pick = cands[cands.length - 1];
+    if (pick) { out.a = pick.v; s = s.slice(0, pick.at) + " " + s.slice(pick.at + pick.raw.length); }
+    var r = trimConn(s.replace(/\s+/g, " ").trim());
+    /* client déjà connu : le plus long nom retrouvé dans le texte */
+    var nr = norm(r), best = null;
+    (names || []).forEach(function (n) {
+      var nn = norm(n); if (!nn) return;
+      var at = (" " + nr + " ").indexOf(" " + nn + " ");
+      if (at > -1 && (!best || nn.length > best.nn.length)) best = { n: n, nn: nn };
+    });
+    if (best) {
+      out.c = best.n; out.known = true;
+      var words = r.split(/\s+/), bw = best.nn.split(" ").length, k;
+      for (k = 0; k + bw <= words.length; k++) if (norm(words.slice(k, k + bw).join(" ")) === best.nn) { words.splice(k, bw); break; }
+      out.l = trimConn(words.join(" "));
+    } else {
+      var sp = /^(.+?)\s*(?:\s[-–—:]\s|[,:;])\s*(.+)$/.exec(r);
+      if (sp) { out.c = sp[1].trim(); out.l = trimConn(sp[2]); } else out.c = r;
+    }
+    out.l = out.l.slice(0, 120); out.c = out.c.slice(0, 80);
+    return out;
+  }
+  function fmtMoney(a) { return Number(a).toLocaleString("fr-FR", { maximumFractionDigits: 2 }); }
+
+  function quickStep1(msg, text) {
+    shell('<h2 id="pfi-t">Ajout rapide</h2>' +
+      "<p>Écrivez le client, le montant et l’échéance, dans l’ordre que vous voulez.</p>" +
+      (msg ? '<div class="pfi-err" role="alert">' + esc(msg) + "</div>" : "") +
+      '<label for="pfi-q">Votre paiement</label><input type="text" id="pfi-q" autocomplete="off" enterkeyhint="go" placeholder="Studio Kora 150000 15/12" value="' + esc(text || "") + '" data-focus>' +
+      "<small>Exemples : « Studio Kora logo 150 000 FCFA 15/12 », « Café Zaka 45000 demain », « Nafa 2 500 dans 10 jours ».</small>" +
+      '<button type="button" class="pfi-btn" id="pfi-qgo">Continuer</button>' +
+      '<button type="button" class="pfi-alt" id="pfi-x">Annuler</button>');
+    var inp = overlay.querySelector("#pfi-q");
+    function go() {
+      var t = inp.value.trim(); if (!t) return quickStep1("Écrivez d’abord le paiement, par exemple : Studio Kora 150000 15/12.", "");
+      var names = PF.clientNames ? PF.clientNames() : [];
+      Q.p = parseQuick(t, names); Q.text = t; quickStep2("");
+    }
+    overlay.querySelector("#pfi-qgo").addEventListener("click", go);
+    inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); go(); } });
+    overlay.querySelector("#pfi-x").addEventListener("click", close);
+  }
+  function quickStep2(err) {
+    var p = Q.p, names = PF.clientNames ? PF.clientNames() : [], nn = {};
+    names.forEach(function (n) { nn[norm(n)] = 1; });
+    shell('<h2 id="pfi-t">Vérifiez le paiement</h2>' +
+      (err ? '<div class="pfi-err" role="alert">' + esc(err) + "</div>" : "") +
+      '<label for="pfi-c">Client</label><input type="text" id="pfi-c" list="pfi-names" autocomplete="off" value="' + esc(p.c) + '"><datalist id="pfi-names">' + names.map(function (n) { return '<option value="' + esc(n) + '">'; }).join("") + "</datalist>" +
+      '<small id="pfi-cs"></small>' +
+      '<label for="pfi-l">Description <span style="font-weight:500;color:#5d6a64">(facultatif)</span></label><input type="text" id="pfi-l" autocomplete="off" value="' + esc(p.l) + '">' +
+      '<label for="pfi-a">Montant</label><input type="text" id="pfi-a" inputmode="decimal" autocomplete="off" value="' + (p.a == null ? "" : esc(String(p.a))) + '">' +
+      '<label for="pfi-d">Échéance</label><input type="date" id="pfi-d" value="' + esc(p.d || "") + '">' +
+      '<button type="button" class="pfi-btn" id="pfi-add" data-focus>Ajouter le paiement</button>' +
+      '<button type="button" class="pfi-alt" id="pfi-back">Modifier le texte</button>');
+    var c = overlay.querySelector("#pfi-c"), cs = overlay.querySelector("#pfi-cs");
+    function status() {
+      var v = c.value.trim();
+      if (!v) { cs.className = ""; cs.textContent = ""; }
+      else if (nn[norm(v)]) { cs.className = "pfi-ok"; cs.textContent = "Client existant ✔"; }
+      else { cs.className = "pfi-new"; cs.textContent = "Nouveau client : il sera créé avec ce paiement."; }
+    }
+    status(); c.addEventListener("input", status);
+    overlay.querySelector("#pfi-back").addEventListener("click", function () { quickStep1("", Q.text); });
+    overlay.querySelector("#pfi-add").addEventListener("click", function () {
+      var cl = c.value.trim(), l = overlay.querySelector("#pfi-l").value.trim(), a = parseAmount(overlay.querySelector("#pfi-a").value),
+          d = overlay.querySelector("#pfi-d").value;
+      if (!cl) return quickStep2Keep("Indiquez le client.");
+      if (a == null) return quickStep2Keep("Le montant est manquant ou illisible.");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return quickStep2Keep("Choisissez la date d’échéance.");
+      Q.p = { c: cl, l: l, a: a, d: d };
+      var id = PF.addPayment({ c: cl, l: l, a: a, e: d });
+      if (!id) { close(); return; }   /* limite du plan Gratuit : la fenêtre des offres s'affiche */
+      Q.added = (Q.added || 0) + 1; quickDone();
+    });
+    function quickStep2Keep(m) { Q.p = { c: c.value.trim(), l: overlay.querySelector("#pfi-l").value.trim(), a: parseAmount(overlay.querySelector("#pfi-a").value), d: overlay.querySelector("#pfi-d").value }; quickStep2(m); }
+  }
+  function quickDone() {
+    var p = Q.p;
+    shell('<h2 id="pfi-t">Paiement ajouté ✔</h2><p><b>' + esc(p.c) + "</b>" + (p.l ? " · " + esc(p.l) : "") + " · " + fmtMoney(p.a) + " · échéance " + esc(PF.fmtFr(p.d)) + "</p>" +
+      '<button type="button" class="pfi-btn" id="pfi-more" data-focus>Ajouter un autre paiement</button>' +
+      '<button type="button" class="pfi-alt" id="pfi-end">Terminer</button>');
+    overlay.querySelector("#pfi-more").addEventListener("click", function () { quickStep1("", ""); });
+    overlay.querySelector("#pfi-end").addEventListener("click", close);
+  }
+  /* Fermeture : si des paiements ont été ajoutés, la page se recharge pour les afficher. */
+  function close() {
+    var n = Q && Q.added; shut();
+    if (n) { if (/payfollow-paiements\.html/.test(location.pathname)) location.reload(); else location.href = "payfollow-paiements.html"; }
+  }
+  function quick() {
+    if (overlay) return;
+    css(); Q = { added: 0 };
+    overlay = document.createElement("div"); overlay.className = "pfi";
+    overlay.setAttribute("role", "dialog"); overlay.setAttribute("aria-modal", "true"); overlay.setAttribute("aria-labelledby", "pfi-t");
+    overlay.innerHTML = '<div class="pfi-b"></div>';
+    overlay.addEventListener("click", function (e) { if (e.target === overlay) close(); });
+    onKey = function (e) { if (e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(overlay);
+    quickStep1("", "");
+  }
+
+  window.PFImport = { open: open, quick: quick, _t: { parseQuick: parseQuick,  parseAmount: parseAmount, parseDate: parseDate, autoMap: autoMap, findHeader: findHeader, parseCSV: parseCSV } };
 })();
