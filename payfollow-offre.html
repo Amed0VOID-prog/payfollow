@@ -300,7 +300,8 @@ function demandes(){PF.myRequests().then(function(rows){var box=$("oreq"),ul=$("
 $("dopts").addEventListener("click",function(e){var b=e.target.closest("[data-m]");if(!b)return;MOIS=+b.dataset.m;durees();montant()});
 etat();durees();montant();
 PF.refreshPlan().then(function(){etat()});
-PF.payInfo().then(function(i){INFO=i;if(i)PRIX=i.prix;durees();montant();numeros()});
+if(!PF.payInfo){durees();montant();INFO=null;numeros();$("onum").innerHTML="<li>Cette page n’est pas à jour. Rechargez-la ; si le message reste, le fichier payfollow-data.js n’a pas été mis à jour sur le site.</li>"}
+else PF.payInfo().then(function(i){INFO=i;if(i)PRIX=i.prix;durees();montant();numeros()});
 demandes();
 $("oform").addEventListener("submit",function(ev){ev.preventDefault();var err=$("oerr"),ok=$("ook");err.textContent="";ok.hidden=true;
  ["f-r","f-t"].forEach(function(i){$(i).removeAttribute("aria-invalid")});
@@ -308,6 +309,7 @@ $("oform").addEventListener("submit",function(ev){ev.preventDefault();var err=$(
  function bad(id,t){$(id).setAttribute("aria-invalid","true");$(id).focus();err.textContent=t}
  if(!op){err.textContent="Choisissez l’opérateur utilisé.";return}
  if(ref.length<4||ref.length>40)return bad("f-r","Indiquez le numéro de la transaction, reçu par SMS.");
+ if(!/^[A-Za-z0-9._-]+$/.test(ref))return bad("f-r","Copiez la référence exacte du SMS : lettres, chiffres, points ou tirets, sans espace.");
  if(dg.length<8||dg.length>15)return bad("f-t","Indiquez le numéro avec lequel vous avez payé.");
  var btn=$("osend");btn.disabled=true;btn.textContent="Envoi…";
  PF.requestPayment({mois:MOIS,operateur:op,reference:ref,telephone:tel}).then(function(r){
