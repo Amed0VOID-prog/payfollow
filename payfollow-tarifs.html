@@ -52,16 +52,17 @@ footer{padding:20px 0 40px;color:var(--mut);font-size:14px}footer .w{display:fle
 <p id="planMsg" role="status" hidden style="text-align:center;margin:14px 0 0;font-weight:600"></p>
 <div class="grid g3">
 <div class="card plan rv"><h3>Gratuit</h3><div class="price"><span data-p="0">0 €</span></div><ul><li>Clients et paiements</li><li>Versements partiels</li><li>Messages de relance prêts</li><li>Export des paiements</li></ul><a class="btn ghost" id="btnFree" style="width:100%" href="payfollow-connexion-v2.html">Commencer</a></div>
-<div class="card plan hot rv"><span class="tag">Le plus choisi</span><h3>Pro</h3><div class="price"><span data-p="4">4 €</span> <small>/mois</small></div><ul><li>Tout le pack Gratuit</li><li>Import Excel/CSV de tes clients et paiements</li><li>Exports Clients et Relances</li><li>Historique complet</li><li>Modèles de relance personnalisables</li><li>Tableau de bord avancé</li></ul><a class="btn" id="btnPro" style="width:100%" href="payfollow-connexion-v2.html">Essayer 3 mois offerts</a></div>
+<div class="card plan hot rv"><span class="tag">Le plus choisi</span><h3>Pro</h3><div class="price"><span data-p="4">4 €</span> <small>/mois</small></div><p style="margin:-6px 0 14px;font-size:14px;color:var(--mut)">Payé à l’avance, en FCFA : 6 mois 13&nbsp;000 · 12 mois 26&nbsp;000</p><ul><li>Tout le pack Gratuit</li><li>Import Excel/CSV de tes clients et paiements</li><li>Exports Clients et Relances</li><li>Historique complet</li><li>Modèles de relance personnalisables</li><li>Tableau de bord avancé</li></ul><a class="btn" id="btnPro" style="width:100%" href="payfollow-connexion-v2.html">Essayer 3 mois offerts</a><a id="payLink" href="payfollow-offre.html" hidden style="display:block;text-align:center;margin-top:12px;font-weight:600;color:var(--g)">Payer à l’avance</a><p id="payNote" style="margin:12px 0 0;text-align:center;font-size:13px;color:var(--mut)">Paiement par Mobile Money, sans abonnement automatique. <a href="payfollow-politique-paiement.html" style="color:var(--g);font-weight:600">Politique de paiement</a></p></div>
 <div class="card plan rv"><span class="tag soon">Bientôt</span><h3>Premium</h3><div class="price"><span data-p="9">9 €</span> <small>/mois</small></div><ul><li>Tout le pack Pro</li><li>Relances automatiques</li><li>Notifications : qui est en retard, de combien, relance envoyée</li></ul><a class="btn ghost" style="width:100%" href="mailto:kaboreabdoulakim70@gmail.com?subject=Premium%20PayFollow">Me prévenir</a></div></div></section>
 <section><h2 class="rv">Questions fréquentes</h2>
-<details class="rv"><summary>Comment annuler ?</summary><p>À tout moment, sans engagement.</p></details>
-<details class="rv"><summary>Comment payer ?</summary><p>Pendant l’essai, rien à payer. Les moyens de paiement (carte, mobile money) seront précisés avant la fin de l’essai.</p></details>
-<details class="rv"><summary>Dans quelle devise ?</summary><p>Tu choisis ta devise, une seule par compte. Euro par défaut, FCFA aussi disponible.</p></details>
+<details class="rv"><summary>Comment payer ?</summary><p>Par Mobile Money (Orange Money, Moov Money), en FCFA et en une seule fois pour 1, 6 ou 12 mois. Tu envoies le montant, tu déclares ton paiement dans PayFollow, et ton Pack Pro est activé après vérification, en général sous 24 heures. La carte bancaire n’est pas disponible pour le moment.</p></details>
+<details class="rv"><summary>Comment annuler ?</summary><p>Il n’y a rien à annuler : pas de prélèvement automatique. Ton Pack Pro reste actif jusqu’à sa date de fin, puis ton compte repasse en Gratuit.</p></details>
+<details class="rv"><summary>Puis-je me faire rembourser ?</summary><p>Oui, dans les 7 jours qui suivent l’activation, si tu as très peu utilisé le Pack Pro. Les détails sont dans la <a href="payfollow-politique-paiement.html" style="color:var(--g);font-weight:600">politique de paiement</a>.</p></details>
+<details class="rv"><summary>Dans quelle devise ?</summary><p>Tu choisis la devise de ton compte, une seule par compte : euro par défaut, FCFA aussi disponible. Le Pack Pro se paie en FCFA.</p></details>
 <details class="rv"><summary>Puis-je importer mes clients existants ?</summary><p>Oui, avec le pack Pro : tu choisis un fichier Excel ou CSV, et tes clients et paiements sont ajoutés d’un coup. Tu vois d’abord un aperçu gratuitement, avant de passer au Pro.</p></details>
-<details class="rv"><summary>Que deviennent mes données si je pars ?</summary><p>Tu peux exporter tes paiements vers Excel avant de partir.</p></details></section>
+<details class="rv"><summary>Que deviennent mes données si je pars, ou si mon Pack Pro se termine ?</summary><p>Tes données restent dans ton compte. Si ton Pack Pro se termine, tu gardes les limites du Gratuit (tes clients déjà saisis restent, mais tu ne peux plus en ajouter au-delà de 5). Tu peux exporter tes paiements vers Excel à tout moment.</p></details></section>
 </main>
-<footer><div class="w"><span>© PayFollow</span><span><a href="payfollow-conditions.html">Conditions d’utilisation</a> · <a href="payfollow-confidentialite.html">Confidentialité</a> · <a href="mailto:kaboreabdoulakim70@gmail.com">Contact</a></span></div></footer>
+<footer><div class="w"><span>© PayFollow</span><span><a href="payfollow-conditions.html">Conditions d’utilisation</a> · <a href="payfollow-confidentialite.html">Confidentialité</a> · <a href="payfollow-politique-paiement.html">Politique de paiement</a> · <a href="mailto:kaboreabdoulakim70@gmail.com">Contact</a></span></div></footer>
 <script src="payfollow-data.js"></script>
 <script>
 (function(){
@@ -70,13 +71,16 @@ footer{padding:20px 0 40px;color:var(--mut);font-size:14px}footer .w{display:fle
   function say(t,err){msg.hidden=!t;msg.textContent=t||"";msg.style.color=err?"var(--red,#c62828)":"var(--gd,#176330)"}
   function off(a,txt){a.textContent=txt;a.classList.add("off");a.removeAttribute("href");a.setAttribute("aria-disabled","true")}
   function on(a,txt,href){a.textContent=txt;a.classList.remove("off");a.removeAttribute("aria-disabled");a.setAttribute("href",href)}
+  var payLink=$("payLink"), payNote=$("payNote");
   function render(i){
     nav.textContent="Mon espace";nav.setAttribute("href","payfollow-tableau-de-bord.html");
-    if(i.paid){off(pro,"Offre actuelle");on(free,"Mon espace","payfollow-tableau-de-bord.html");say("Votre offre : Pack Pro.")}
-    else if(i.trialActive){off(pro,"Essai actif jusqu’au "+PF.fmtFr(i.fin));on(free,"Mon espace","payfollow-tableau-de-bord.html");say("Essai gratuit du Pack Pro jusqu’au "+PF.fmtFr(i.fin)+".")}
-    else if(i.trialAvailable){off(free,"Offre actuelle");on(pro,"Activer mes 3 mois offerts","#");pro.dataset.trial="1";say("Votre offre : Gratuit. Vous avez 3 mois de Pack Pro offerts.")}
-    else if(i.trialOver){off(free,"Offre actuelle");off(pro,"Paiement bientôt disponible");say("Votre essai Pro est terminé. Le paiement du Pack Pro sera bientôt disponible.")}
-    else{off(free,"Offre actuelle")}
+    var left=i.daysLeft!=null?" ("+i.daysLeft+" jour"+(i.daysLeft>1?"s":"")+" restant"+(i.daysLeft>1?"s":"")+")":"";
+    if(i.paid){on(pro,"Prolonger mon Pack Pro","payfollow-offre.html");on(free,"Mon espace","payfollow-tableau-de-bord.html");say("Ton Pack Pro est actif jusqu’au "+PF.fmtFr(i.paidEnd)+left+".")}
+    else if(i.trialActive){on(pro,"Payer à l’avance","payfollow-offre.html");on(free,"Mon espace","payfollow-tableau-de-bord.html");say("Essai gratuit du Pack Pro jusqu’au "+PF.fmtFr(i.fin)+". Si tu paies maintenant, la durée commence à la fin de ton essai.")}
+    else if(i.trialAvailable){off(free,"Offre actuelle");on(pro,"Activer mes 3 mois offerts","#");pro.dataset.trial="1";payLink.hidden=false;say("Ton offre : Gratuit. Tu as 3 mois de Pack Pro offerts.")}
+    else if(i.expired){off(free,"Offre actuelle");on(pro,"Reprendre le Pack Pro","payfollow-offre.html");say("Ton Pack Pro a pris fin"+(i.expiredOn?" le "+PF.fmtFr(i.expiredOn):"")+". Tes données sont conservées.")}
+    else if(i.trialOver){off(free,"Offre actuelle");on(pro,"Passer au Pack Pro","payfollow-offre.html");say("Ton essai gratuit est terminé. Tu peux passer au Pack Pro quand tu veux.")}
+    else{off(free,"Offre actuelle");on(pro,"Passer au Pack Pro","payfollow-offre.html")}
   }
   PF.refreshPlan().then(function(i){ if(i) render(i); });
   pro.addEventListener("click",function(e){
@@ -85,7 +89,7 @@ footer{padding:20px 0 40px;color:var(--mut);font-size:14px}footer .w{display:fle
     PF.startTrial().then(function(r){
       if(r&&r.ok){delete pro.dataset.trial;render(PF.planInfo());return}
       pro.classList.remove("off");pro.textContent="Activer mes 3 mois offerts";
-      say(r&&r.err==="deja"?"Votre essai gratuit a déjà été utilisé.":r&&r.err==="absent"?"L’activation n’est pas encore disponible. Réessayez plus tard.":r&&r.err==="session"?"Votre session a expiré. Reconnectez-vous, puis réessayez.":"Activation impossible. Vérifiez votre connexion et réessayez.",true);
+      say(r&&r.err==="deja"?"Ton essai gratuit a déjà été utilisé.":r&&r.err==="absent"?"L’activation n’est pas encore disponible. Réessaie plus tard.":r&&r.err==="session"?"Ta session a expiré. Reconnecte-toi, puis réessaie.":"Activation impossible. Vérifie ta connexion et réessaie.",true);
     });
   });
 })();

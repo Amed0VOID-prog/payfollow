@@ -81,7 +81,13 @@
 
   /* ---------- Offre et limite de clients (la base fait foi : cette vérification évite juste un aller-retour) ---------- */
   function plan() { try { return JSON.parse(localStorage.getItem("pf_plan") || "null") || {}; } catch (e) { return {}; } }
-  function limited() { var p = plan(); return p.plan === "gratuit" && !(p.fin && p.fin >= today()); }
+  /* Pack Pro payé et encore valable ? (plan pro/premium sans date de fin = illimité) */
+  function paidActive(p) { return (p.plan === "pro" || p.plan === "premium") && (!p.pf || p.pf >= today()); }
+  function limited() {
+    var p = plan();
+    if (paidActive(p)) return false;
+    return (p.plan === "gratuit" || p.plan === "pro" || p.plan === "premium") && !(p.fin && p.fin >= today());
+  }
   function realCount() { return db.clients.filter(function (c) { return !c.x; }).length; }
   function canAdd() { return !limited() || realCount() < LIMIT; }
   function showLimit() {
@@ -420,10 +426,13 @@
   /* ---------- Offre : lecture et essai Pro gratuit de 3 mois ---------- */
   var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
   function fmtFr(iso) { var p = String(iso || "").slice(0, 10).split("-"); return p.length === 3 ? (+p[2]) + " " + MOIS[(+p[1]) - 1] + " " + p[0] : ""; }
+  function daysTo(iso) { var a = today().split("-"), b = String(iso).split("-"); return Math.round((Date.UTC(+b[0], +b[1] - 1, +b[2]) - Date.UTC(+a[0], +a[1] - 1, +a[2])) / 864e5); }
   function planInfo() {
-    var p = plan(), paid = p.plan === "pro" || p.plan === "premium", trial = p.plan === "gratuit" && !!p.fin && p.fin >= today();
-    return { known: !!p.plan, plan: p.plan || "", fin: p.fin || "", paid: paid, trialActive: trial,
-             trialAvailable: p.plan === "gratuit" && !p.fin, trialOver: p.plan === "gratuit" && !!p.fin && p.fin < today(), pro: !limited() };
+    var p = plan(), paid = paidActive(p), expired = (p.plan === "pro" || p.plan === "premium") && !paid,
+        free = p.plan === "gratuit" || expired, trial = free && !!p.fin && p.fin >= today();
+    return { known: !!p.plan, plan: p.plan || "", fin: p.fin || "", paid: paid, paidEnd: paid ? (p.pf || "") : "", expired: expired, expiredOn: expired ? (p.pf || "") : "",
+             daysLeft: paid && p.pf ? daysTo(p.pf) : null, trialActive: trial, trialAvailable: p.plan === "gratuit" && !p.fin,
+             trialOver: free && !!p.fin && p.fin < today(), pro: !limited() };
   }
   /* Offre à jour depuis la base ; renvoie null si personne n'est connecté. */
   function refreshPlan() {
@@ -431,9 +440,9 @@
       if (!sb || sb.timeout) return null;
       return after(sb.auth.getSession(), 8000).then(function (r) {
         if (!(r && r.data && r.data.session)) return null;
-        return after(sb.from("abonnements").select("plan,essai_fin").maybeSingle(), 10000).then(function (res) {
+        return after(sb.from("abonnements").select("plan,essai_fin,pro_fin").maybeSingle(), 10000).then(function (res) {
           var ab = res && res.data;
-          if (ab) { try { localStorage.setItem("pf_plan", JSON.stringify({ plan: ab.plan, fin: ab.essai_fin || "" })); } catch (e) {} }
+          if (ab) { try { localStorage.setItem("pf_plan", JSON.stringify({ plan: ab.plan, fin: ab.essai_fin || "", pf: ab.pro_fin || "" })); } catch (e) {} }
           return true;
         });
       });
@@ -453,19 +462,75 @@
           return { ok: false, err: "reseau" };
         }
         var fin = String(res.data || "").slice(0, 10);
-        try { localStorage.setItem("pf_plan", JSON.stringify({ plan: "gratuit", fin: fin })); } catch (e) {}
+        try { var pp = plan(); localStorage.setItem("pf_plan", JSON.stringify({ plan: pp.plan || "gratuit", fin: fin, pf: pp.pf || "" })); } catch (e) {}
         return { ok: true, fin: fin };
       });
     }).catch(function () { return { ok: false, err: "reseau" }; });
   }
+  /* ---------- Paiement prépayé par Mobile Money ---------- */
+  function payInfo() {
+    return after(getSb(), 8000).then(function (sb) {
+      if (!sb || sb.timeout) return null;
+      return after(sb.from("parametres").select("cle,valeur"), 10000).then(function (res) {
+        if (!res || res.timeout || res.error) return null;
+        var m = {}; (res.data || []).forEach(function (r) { m[r.cle] = r.valeur; });
+        var n = function (k, def) { var v = parseInt(m[k], 10); return isFinite(v) && v > 0 ? v : def; };
+        return { prix: { 1: n("prix_1", 2600), 6: n("prix_6", 13000), 12: n("prix_12", 26000) },
+                 orange: m.paiement_orange || "", moov: m.paiement_moov || "", nom: m.paiement_nom || "", delai: m.delai_activation || "24 heures" };
+      });
+    }).catch(function () { return null; });
+  }
+  function requestPayment(o) {
+    return after(getSb(), 8000).then(function (sb) {
+      if (!sb || sb.timeout) return { ok: false, err: "reseau" };
+      return after(sb.from("demandes_paiement").insert({ duree_mois: o.mois, operateur: o.operateur, reference: o.reference, telephone: o.telephone || "" }), 15000).then(function (res) {
+        if (!res || res.timeout) return { ok: false, err: "reseau" };
+        if (res.error) {
+          var m = String(res.error.message || ""), c = String(res.error.code || "");
+          if (c === "23505" || /duplicate key|demandes_reference_unique/i.test(m)) return { ok: false, err: "doublon" };
+          if (/TROP_DE_DEMANDES/.test(m)) return { ok: false, err: "trop" };
+          if (/PRIX_INCONNU/.test(m)) return { ok: false, err: "prix" };
+          if (c === "42P01" || c === "PGRST205" || c === "PGRST202" || /schema cache|does not exist/i.test(m)) return { ok: false, err: "absent" };
+          if (c === "23514" || /check constraint/i.test(m)) return { ok: false, err: "invalide" };
+          return { ok: false, err: "reseau" };
+        }
+        return { ok: true };
+      });
+    }).catch(function () { return { ok: false, err: "reseau" }; });
+  }
+  function myRequests() {
+    return after(getSb(), 8000).then(function (sb) {
+      if (!sb || sb.timeout) return null;
+      return after(sb.from("demandes_paiement").select("duree_mois,montant,operateur,reference,statut,motif,cree_le").order("cree_le", { ascending: false }).limit(10), 10000).then(function (res) {
+        return res && !res.timeout && !res.error ? (res.data || []) : null;
+      });
+    }).catch(function () { return null; });
+  }
+  /* Bandeau discret quand le Pack Pro payé se termine (7 jours avant) ou vient de se terminer. */
+  function renewBanner() {
+    var old = document.getElementById("pf-renew"); if (old && old.parentNode) old.parentNode.removeChild(old);
+    if (/payfollow-offre/.test(location.pathname)) return;
+    var i = planInfo(), msg = "";
+    if (i.paid && i.daysLeft != null && i.daysLeft <= 7) msg = i.daysLeft <= 0 ? "Votre Pack Pro se termine aujourd’hui." : "Votre Pack Pro se termine dans " + i.daysLeft + " jour" + (i.daysLeft > 1 ? "s" : "") + " (le " + fmtFr(i.paidEnd) + ").";
+    else if (i.expired && i.expiredOn && daysTo(i.expiredOn) >= -30) msg = "Votre Pack Pro a pris fin le " + fmtFr(i.expiredOn) + ". Vos données sont conservées.";
+    if (!msg) return;
+    try { if (sessionStorage.getItem("pf_rb") === today()) return; } catch (e) {}
+    var host = document.querySelector("main") || document.body, b = document.createElement("div");
+    b.id = "pf-renew"; b.setAttribute("role", "status");
+    b.setAttribute("style", "display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:10px 14px;border-radius:14px;background:#fef3e2;color:#8a4a06;font-size:13.5px;font-weight:600;line-height:1.4");
+    b.innerHTML = "<span></span><span style=\"display:flex;gap:8px;align-items:center\"><a href=\"payfollow-offre.html\" style=\"border:1.5px solid #b45309;background:#fff;color:#8a4a06;border-radius:99px;padding:6px 14px;font-size:13px;font-weight:700;text-decoration:none\">Prolonger</a><button type=\"button\" aria-label=\"Masquer\" style=\"border:0;background:none;color:#8a4a06;font-size:20px;line-height:1;cursor:pointer;padding:4px 8px\">×</button></span>";
+    b.firstChild.textContent = msg;
+    host.insertBefore(b, host.firstChild);
+    b.querySelector("button").addEventListener("click", function () { try { sessionStorage.setItem("pf_rb", today()); } catch (e) {} if (b.parentNode) b.parentNode.removeChild(b); });
+  }
   /* Pages privées : sans session, retour à la page de connexion. */
   function guard() {
-    if (/payfollow-(accueil|tarifs|conditions|confidentialite|connexion)/.test(location.pathname)) return;
+    if (/payfollow-(accueil|tarifs|conditions|confidentialite|connexion|politique-paiement)/.test(location.pathname)) return;
     getSb().then(function (sb) {
       if (!sb) return null;
       return sb.auth.getSession().then(function (r) {
         if (!(r && r.data && r.data.session)) { location.replace("payfollow-connexion-v2.html"); return; }
-        flush(); pull().then(function (ch) { if (ch) reloadOnce(); });
+        flush(); refreshPlan().then(function () { renewBanner(); }); pull().then(function (ch) { if (ch) reloadOnce(); });
       });
     }).catch(function () {});
   }
@@ -541,7 +606,7 @@
       if (rs[x.id]) rel[x.id] = rs[x.id].sort(byD);
     });
     var ab = R[4] && R[4].data;
-    if (ab) { try { localStorage.setItem("pf_plan", JSON.stringify({ plan: ab.plan, fin: ab.essai_fin || "" })); } catch (e) {} }
+    if (ab) { try { localStorage.setItem("pf_plan", JSON.stringify({ plan: ab.plan, fin: ab.essai_fin || "", pf: ab.pro_fin || "" })); } catch (e) {} }
 
     var realC = db.clients.filter(function (c) { return !c.x; }), realP = db.payments.filter(function (p) { return !p.x; });
     var realRel = {}; realP.forEach(function (p) { if (db.rel[p.id]) realRel[p.id] = db.rel[p.id].map(function (r) { return typeof r === "string" ? { i: "", d: r } : r; }); });
@@ -574,7 +639,7 @@
           return Promise.all([
             sb.from("clients").select("*").limit(5000), sb.from("paiements").select("*").limit(5000),
             sb.from("versements").select("*").limit(5000), sb.from("relances").select("*").limit(5000),
-            sb.from("abonnements").select("plan,essai_fin").maybeSingle()
+            sb.from("abonnements").select("plan,essai_fin,pro_fin").maybeSingle()
           ]).then(function (R) {
             for (var i = 0; i < 4; i++) if (R[i].error) throw R[i].error;
             return applyPull(R, opt);
@@ -634,8 +699,8 @@
       clearDemo(); location.reload();
     });
   }
-  var PUBLIC = /payfollow-(accueil|tarifs|conditions|confidentialite|connexion)|\/(index\.html)?$/;
-  function boot() { if (PUBLIC.test(location.pathname)) return; banner(); paintAvatar(); paintName(); guard(); }
+  var PUBLIC = /payfollow-(accueil|tarifs|conditions|confidentialite|connexion|politique-paiement)|\/(index\.html)?$/;
+  function boot() { if (PUBLIC.test(location.pathname)) return; banner(); renewBanner(); paintAvatar(); paintName(); guard(); }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 
   window.PF = {
@@ -646,6 +711,6 @@
     relances: relances, allRelances: allRelances, addRelance: addRelance,
     addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, deletePayment: deletePayment,
     monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm,
-    profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut, deleteAccount: deleteAccount, isPro: isPro, planInfo: planInfo, refreshPlan: refreshPlan, startTrial: startTrial, fmtFr: fmtFr, importInfo: importInfo, importBatch: importBatch, pull: pull, flush: flush
+    profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut, deleteAccount: deleteAccount, isPro: isPro, planInfo: planInfo, payInfo: payInfo, requestPayment: requestPayment, myRequests: myRequests, refreshPlan: refreshPlan, startTrial: startTrial, fmtFr: fmtFr, importInfo: importInfo, importBatch: importBatch, pull: pull, flush: flush
   };
 })();
