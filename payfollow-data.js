@@ -181,13 +181,14 @@
     load();
     if (limited()) return { ok: false, err: "pro" };
     if (db.demo) clearDemo();
-    var newC = [], newP = [], touched = [], i, c, it, p, n;
+    var newC = [], newP = [], newV = [], touched = [], i, c, it, p, n;
     for (i = 0; i < items.length; i++) {
       it = items[i]; n = String(it.c || "").trim(); if (!n) continue;
       c = find(n);
       if (!c) { c = { id: uuid(), n: n, e: it.e || "", t: it.t || "", k: today() }; db.clients.push(c); newC.push(c); }
       else if ((!c.e && it.e) || (!c.t && it.t)) { if (!c.e) c.e = it.e || ""; if (!c.t) c.t = it.t || ""; if (newC.indexOf(c) < 0 && touched.indexOf(c) < 0) touched.push(c); }
       p = { id: uuid(), c: c.n, l: String(it.l || "").trim() || "Paiement", a: money(it.a), e: it.d, k: today(), v: [] };
+      var rc = money(it.r); if (rc > 0) { rc = Math.min(rc, p.a); var vv = { i: uuid(), a: rc, d: today(), r: 1 }; p.v.push(vv); newV.push({ id: vv.i, paiement_id: p.id, montant: rc, date_verse: vv.d }); }
       db.payments.push(p); newP.push(p);
     }
     save();
@@ -195,6 +196,7 @@
     chunks(newC, function (x) { return { id: x.id, nom: x.n, email: x.e || "", telephone: x.t || "", cree_le: x.k || today() }; }, "clb");
     touched.forEach(function (x) { syncClient(x); });
     chunks(newP, function (x) { var cl = find(x.c); return { id: x.id, client_id: cl.id, libelle: x.l, montant: x.a, echeance: x.e, cree_le: x.k || today() }; }, "pab");
+    for (var k2 = 0; k2 < newV.length; k2 += 100) enqueue({ k: "veb", d: newV.slice(k2, k2 + 100) });
     return { ok: true, clients: newC.length, payments: newP.length };
   }
 
@@ -207,7 +209,7 @@
       d: done ? last : p.e, lastV: p.v.length ? last : "",
       s: done ? "paid" : (p.e < today() ? "late" : "wait"),
       x: p.x ? 1 : 0,
-      v: p.v.map(function (x) { return { a: x.a, d: x.d, r: x.r ? 1 : 0 }; })
+      v: p.v.map(function (x) { return { i: x.i, a: x.a, d: x.d, r: x.r ? 1 : 0 }; })
     };
   }
   function payments() { return load().payments.map(view); }
@@ -220,7 +222,9 @@
     load(); var cn = addClient(o.c); if (!cn) return null;
     var c = find(cn); if (!makeReal(c)) return null;
     var p = { id: uuid(), c: c.n, l: (o.l || "").trim() || "Paiement", a: +o.a, e: o.e, k: today(), v: [] };
-    db.payments.push(p); syncPayment(p); save(); return p.id;
+    db.payments.push(p); syncPayment(p);
+    var rec = money(o.r); if (rec > 0) { rec = Math.min(rec, p.a); var v0 = { i: uuid(), a: rec, d: o.rd || today(), r: 1 }; p.v.push(v0); enqueue({ k: "ve", d: { id: v0.i, paiement_id: p.id, montant: rec, date_verse: v0.d } }); }
+    save(); return p.id;
   }
   function updatePayment(id, o) {
     var p = byId(id); if (!p) return false;
@@ -239,6 +243,21 @@
     var p = byId(id); if (!p) return false;
     var v = { i: uuid(), a: +a, d: d, r: 1 }; p.v.push(v);
     if (!p.x) enqueue({ k: "ve", d: { id: v.i, paiement_id: p.id, montant: money(a), date_verse: d } });
+    save(); return true;
+  }
+  function updateVersement(pid, vid, a, dt) {
+    var p = byId(pid); if (!p) return false;
+    var v = p.v.filter(function (x) { return x.i === vid; })[0]; if (!v) return false;
+    if (!(+a > 0)) return false;
+    v.a = money(a); if (dt) v.d = dt;
+    if (!p.x) enqueue({ k: "ve", d: { id: v.i, paiement_id: p.id, montant: v.a, date_verse: v.d } });
+    save(); return true;
+  }
+  function deleteVersement(pid, vid) {
+    var p = byId(pid); if (!p) return false;
+    var n = p.v.length; p.v = p.v.filter(function (x) { return x.i !== vid; });
+    if (p.v.length === n) return false;
+    if (!p.x) enqueue({ k: "dv", id: vid });
     save(); return true;
   }
   function deletePayment(id) {
@@ -541,7 +560,9 @@
     var d = op.d, T = { cl: "clients", pa: "paiements", ve: "versements", re: "relances" };
     if (op.k === "dc") return sb.from("clients").delete().eq("id", op.id);
     if (op.k === "dp") return sb.from("paiements").delete().eq("id", op.id);
+    if (op.k === "dv") return sb.from("versements").delete().eq("id", op.id);
     /* envois groupés (import de fichier) : jusqu'à 100 lignes d'un coup */
+    if (op.k === "veb") return sb.from("versements").upsert((op.d || []).map(function (r) { return Object.assign({ user_id: uid }, r); }));
     if (op.k === "clb" || op.k === "pab") return sb.from(op.k === "clb" ? "clients" : "paiements").upsert((op.d || []).map(function (r) { return Object.assign({ user_id: uid }, r); }));
     if (T[op.k]) return sb.from(T[op.k]).upsert(Object.assign({ user_id: uid }, d));
     return Promise.resolve({});
@@ -709,7 +730,7 @@
     addClient: function (n, e, t) { load(); var r = addClient(n, e, t); save(); return r; },
     updateClient: updateClient, deleteClient: deleteClient,
     relances: relances, allRelances: allRelances, addRelance: addRelance,
-    addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, deletePayment: deletePayment,
+    addPayment: addPayment, updatePayment: updatePayment, addVersement: addVersement, updateVersement: updateVersement, deleteVersement: deleteVersement, deletePayment: deletePayment,
     monthly: monthly, monthName: monthName, isDemo: isDemo, clearDemo: clearDemo, norm: norm,
     profile: getProfile, setProfile: setProfile, initial: initial, syncProfile: syncProfile, signOut: signOut, deleteAccount: deleteAccount, isPro: isPro, planInfo: planInfo, payInfo: payInfo, requestPayment: requestPayment, myRequests: myRequests, refreshPlan: refreshPlan, startTrial: startTrial, fmtFr: fmtFr, importInfo: importInfo, importBatch: importBatch, pull: pull, flush: flush
   };

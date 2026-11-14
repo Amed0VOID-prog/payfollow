@@ -354,13 +354,15 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     open('<div class="dh"><span class="av2" style="'+tint(p.c)+'">'+p.c[0]+'</span><div><h2>'+p.c+'</h2><span class="sub">'+p.l+'</span></div>'+ACT+X+'</div>'+
       '<div class="big" id="bg"></div><span class="pill2 '+p.s+'">'+ST[p.s]+'</span>'+
       '<div class="prog"><i style="width:'+pct.toFixed(1)+'%"></i></div><div class="pl"><span>Reçu '+fmt(g)+'</span><span>'+(r>0?'Reste '+fmt(r):'Entièrement payé')+'</span></div>'+
-      '<ul class="info"><li><span>'+(p.s==="paid"?"Dernier versement":"Échéance")+'</span><b>'+dayLong(p.d)+'</b></li><li><span>Description</span><b>'+p.l+'</b></li></ul>'+
-      '<h3 class="vh">Versements</h3>'+
-      (p.v.length ? '<ul class="info vl">'+p.v.slice().reverse().map(function(x){ return '<li><span>'+dayLong(x.d)+'</span><b>'+fmt(x.a)+'</b></li>'; }).join("")+'</ul>' : '<p class="sub">Aucun versement pour l’instant.</p>')+
-      (r>0 ? '<button class="go" id="vb">+ Versement</button>' : '')+
+      '<ul class="info"><li><span>'+(p.s==="paid"?"Dernier montant reçu":"Échéance")+'</span><b>'+dayLong(p.d)+'</b></li><li><span>Description</span><b>'+p.l+'</b></li></ul>'+
+      '<h3 class="vh">Montants reçus</h3>'+
+      (p.v.length ? '<ul class="info vl">'+p.v.slice().reverse().map(function(x){ return '<li><span>'+dayLong(x.d)+'</span><b>'+fmt(x.a)+'</b><span class="acts"><button class="x2" data-ve="'+x.i+'" aria-label="Modifier ce montant reçu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg></button><button class="x2 dg" data-vd="'+x.i+'" aria-label="Supprimer ce montant reçu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></span></li>'; }).join("")+'</ul>' : '<p class="sub">Rien reçu pour l’instant.</p>')+
+      (r>0 ? '<button class="go" id="vb">+ Montant reçu</button>' : '')+
       (p.s==="late" ? '<a class="go2" style="display:grid;place-items:center" href="payfollow-relances.html#'+encodeURIComponent(p.c)+'">Préparer une relance</a>' : ''));
     count($("bg"), p.a, fmt, 900, 100);
     if ($("vb")) $("vb").addEventListener("click", function(){ openVers(i); });
+    dr.querySelectorAll("[data-ve]").forEach(function(b){ b.addEventListener("click", function(){ openVersEdit(i, b.dataset.ve); }); });
+    dr.querySelectorAll("[data-vd]").forEach(function(b){ b.addEventListener("click", function(){ openVersDel(i, b.dataset.vd); }); });
     dr.querySelector("[data-edit]").addEventListener("click", function(){ openEdit(i); });
     dr.querySelector("[data-del]").addEventListener("click", function(){ openDel(i); });
   }
@@ -429,19 +431,19 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   function openDel(i){
     var p = P[i];
     open('<div class="dh"><div><h2>Supprimer ce paiement ?</h2><span class="sub">'+p.c+' · '+p.l+' · '+fmt(p.a)+'</span></div>'+X+'</div>'+
-      '<p style="font-size:15px;color:var(--mut);margin:0 0 18px">Cette action est définitive : le paiement et ses versements seront effacés.</p>'+
+      '<p style="font-size:15px;color:var(--mut);margin:0 0 18px">Cette action est définitive : le paiement et les montants reçus seront effacés.</p>'+
       '<button class="go dgr" id="dy">Oui, supprimer</button><button class="go2" id="dn">Annuler</button>');
     $("dn").addEventListener("click", function(){ openPay(i); });
     $("dy").addEventListener("click", function(){ PF.deletePayment(p.id); close(); renderAll(false); toast("Paiement supprimé"); });
   }
   function openVers(i){
     var p = P[i], r = rest(p);
-    open('<div class="dh"><div><h2>Enregistrer un versement</h2><span class="sub">'+p.c+' · '+p.l+'</span></div>'+X+'</div>'+
+    open('<div class="dh"><div><h2>Enregistrer un montant reçu</h2><span class="sub">'+p.c+' · '+p.l+'</span></div>'+X+'</div>'+
       '<div class="solde">Solde restant :<b>'+fmt(r)+'</b></div>'+
       '<form class="fm" id="vf" novalidate>'+
       '<label class="fl" for="va">Montant reçu</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.wal+'</svg><input id="va" type="number" inputmode="decimal" min="0" step="any" value="'+r+'"><b>'+CUR[cur].s+'</b></div>'+
       '<label class="fl" for="vd">Date de réception</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.cal+'</svg><input id="vd" type="date" value="'+iso(new Date())+'"></div>'+
-      '<p class="err" id="ver" role="alert"></p><button class="go" type="submit">Valider le versement</button><button class="go2" type="button" id="vc">Annuler</button></form>');
+      '<p class="err" id="ver" role="alert"></p><button class="go" type="submit">Valider</button><button class="go2" type="button" id="vc">Annuler</button></form>');
     $("vc").addEventListener("click", function(){ openPay(i); });
     $("vf").addEventListener("submit", function(ev){
       ev.preventDefault(); var a = parseFloat($("va").value), dt = $("vd").value;
@@ -453,26 +455,59 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       PF.addVersement(p.id, a, dt); renderAll(false); p = P[i];
       var done = rest(p) <= 0.005;
       openPay(i);
-      toast(done ? "Paiement soldé : " + p.c : "Versement de " + fmt(a) + " enregistré");
+      toast(done ? "Paiement soldé : " + p.c : fmt(a) + " reçus, enregistré");
     });
+  }
+  function openVersEdit(i, vid){
+    var p = P[i], v = p.v.filter(function(x){ return x.i === vid; })[0]; if (!v) return openPay(i);
+    var max = rest(p) + v.a;
+    open('<div class="dh"><div><h2>Modifier le montant reçu</h2><span class="sub">'+p.c+' · '+p.l+'</span></div>'+X+'</div>'+
+      '<div class="solde">Montant total dû :<b>'+fmt(p.a)+'</b></div>'+
+      '<form class="fm" id="vf" novalidate>'+
+      '<label class="fl" for="va">Montant reçu</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.wal+'</svg><input id="va" type="number" inputmode="decimal" min="0" step="any" value="'+v.a+'"><b>'+CUR[cur].s+'</b></div>'+
+      '<label class="fl" for="vd">Date de réception</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.cal+'</svg><input id="vd" type="date" value="'+v.d+'"></div>'+
+      '<p class="err" id="ver" role="alert"></p><button class="go" type="submit">Enregistrer</button><button class="go2" type="button" id="vc">Annuler</button></form>');
+    $("vc").addEventListener("click", function(){ openPay(i); });
+    $("vf").addEventListener("submit", function(ev){
+      ev.preventDefault(); var a = parseFloat($("va").value), dt = $("vd").value;
+      $("va").removeAttribute("aria-invalid"); $("vd").removeAttribute("aria-invalid");
+      function bad(el, t){ el.setAttribute("aria-invalid","true"); el.focus(); $("ver").textContent = t; }
+      if (!(a > 0)) return bad($("va"), "Entrez un montant supérieur à 0.");
+      if (a > max + 0.005) return bad($("va"), "Le montant dépasse le total dû (" + fmt(p.a) + ").");
+      if (!dt) return bad($("vd"), "Choisissez la date de réception.");
+      PF.updateVersement(p.id, vid, a, dt); renderAll(false); openPay(i); toast("Montant reçu modifié");
+    });
+  }
+  function openVersDel(i, vid){
+    var p = P[i], v = p.v.filter(function(x){ return x.i === vid; })[0]; if (!v) return openPay(i);
+    open('<div class="dh"><div><h2>Supprimer ce montant reçu ?</h2><span class="sub">'+p.c+' · '+fmt(v.a)+' · '+dayLong(v.d)+'</span></div>'+X+'</div>'+
+      '<p style="font-size:15px;color:var(--mut);margin:0 0 18px">Le paiement reviendra à « reste à payer » pour ce montant.</p>'+
+      '<button class="go dgr" id="dy">Oui, supprimer</button><button class="go2" id="dn">Annuler</button>');
+    $("dn").addEventListener("click", function(){ openPay(i); });
+    $("dy").addEventListener("click", function(){ PF.deleteVersement(p.id, vid); renderAll(false); openPay(i); toast("Montant reçu supprimé"); });
   }
   function openForm(){
     var d = new Date(); d.setDate(d.getDate()+14);
     open('<div class="dh"><div><h2>Nouveau paiement</h2><span class="sub">Ajoutez un paiement attendu d’un client.</span></div>'+X+'</div>'+
       '<form class="fm" id="fm" novalidate>'+
       '<label class="fl" for="pc">Client</label>'+pkHtml("pc", "")+
-      '<label class="fl" for="pa">Montant</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.wal+'</svg><input id="pa" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><b>'+CUR[cur].s+'</b></div>'+
+      '<label class="fl" for="pa">Montant total dû</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.wal+'</svg><input id="pa" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><b>'+CUR[cur].s+'</b></div>'+
+      '<label class="fl" for="pr">Déjà reçu (facultatif)</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.wal+'</svg><input id="pr" type="number" inputmode="decimal" min="0" step="any" placeholder="0"><b>'+CUR[cur].s+'</b></div><p class="sub" id="prs" style="margin:6px 0 0"></p>'+
       '<label class="fl" for="pd">Date d’échéance</label><div class="f"><svg class="ic" viewBox="0 0 24 24">'+IC.cal+'</svg><input id="pd" type="date" value="'+iso(d)+'"></div>'+
       '<label class="fl" for="pl">Description (facultatif)</label><div class="f"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6"/></svg><input id="pl" placeholder="Ex. Création du logo"></div>'+
       '<p class="err" id="fer" role="alert"></p><button class="go" type="submit">Ajouter le paiement</button></form>');
     pkWire("pc");
+    function resteInfo(){ var a = parseFloat($("pa").value), r = parseFloat($("pr").value); $("prs").textContent = (a > 0 && r > 0 && r <= a) ? "Reste à payer : " + fmt(a - r) : ""; }
+    $("pa").addEventListener("input", resteInfo); $("pr").addEventListener("input", resteInfo);
     $("fm").addEventListener("submit", function(ev){
-      ev.preventDefault(); var a = parseFloat($("pa").value), dt = $("pd").value;
+      ev.preventDefault(); var a = parseFloat($("pa").value), dt = $("pd").value, rc = parseFloat($("pr").value) || 0;
       $("pc").removeAttribute("aria-invalid"); var c = pkResolve("pc", $("fer")); if (!c) return;
       $("pa").removeAttribute("aria-invalid"); $("pd").removeAttribute("aria-invalid");
-      if (!(a > 0)){ $("pa").setAttribute("aria-invalid","true"); $("pa").focus(); $("fer").textContent = "Entrez un montant supérieur à 0."; return; }
+      if (!(a > 0)){ $("pa").setAttribute("aria-invalid","true"); $("pa").focus(); $("fer").textContent = "Entrez le montant total dû, supérieur à 0."; return; }
+      $("pr").removeAttribute("aria-invalid");
+      if (rc < 0 || rc > a + 0.005){ $("pr").setAttribute("aria-invalid","true"); $("pr").focus(); $("fer").textContent = "Le montant déjà reçu ne peut pas dépasser le total dû (" + fmt(a) + ")."; return; }
       if (!dt){ $("pd").setAttribute("aria-invalid","true"); $("pd").focus(); $("fer").textContent = "Choisissez une date d’échéance."; return; }
-      if (!PF.addPayment({c:c,l:$("pl").value,a:a,e:dt})){ close(); return; }
+      if (!PF.addPayment({c:c,l:$("pl").value,a:a,e:dt,r:rc})){ close(); return; }
       filter = "all"; query = ""; $("q").value = ""; close(); renderAll(false); toast("Paiement ajouté pour " + c);
     });
   }

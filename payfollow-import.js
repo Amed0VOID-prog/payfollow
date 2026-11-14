@@ -15,6 +15,8 @@
       syn: ["client", "nom du client", "nom client", "nom", "customer", "name", "societe", "entreprise", "raison sociale", "destinataire", "debiteur"] },
     { k: "a", label: "Montant", req: true,
       syn: ["montant", "somme", "total", "prix", "amount", "tarif", "valeur", "a payer", "reste a payer", "creance", "dette"] },
+    { k: "r", label: "Déjà reçu", req: false,
+      syn: ["deja recu", "deja paye", "deja verse", "deja encaisse", "deja regle", "montant recu", "montant paye", "acompte", "avance", "recu", "verse", "encaisse"] },
     { k: "d", label: "Échéance", req: true,
       syn: ["echeance", "date limite", "date d echeance", "date echeance", "date de paiement", "date paiement", "due date", "due", "limite", "delai", "date"] },
     { k: "l", label: "Description", req: false,
@@ -202,7 +204,13 @@
       e = String(get(r, "e") == null ? "" : get(r, "e")).trim();
       if (e && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) e = "";
       t = get(r, "t"); t = typeof t === "number" ? String(Math.round(t)) : String(t == null ? "" : t).trim().slice(0, 30);
-      var it = { line: S.hdr + 2 + idx, c: c.slice(0, 80), e: e, t: t, l: l, a: a, d: d, why: why, dup: false };
+      var rawR = get(r, "r"), rc = 0;
+      if (rawR !== "" && rawR != null && String(rawR).trim() !== "" && !/^0+([.,]0+)?$/.test(String(rawR).trim())) {
+        rc = parseAmount(rawR);
+        if (rc == null) { rc = 0; why.push("déjà reçu illisible (« " + String(rawR).slice(0, 20) + " »)"); }
+        else if (a != null && rc > a + 0.005) why.push("déjà reçu supérieur au montant");
+      }
+      var it = { line: S.hdr + 2 + idx, c: c.slice(0, 80), e: e, t: t, l: l, a: a, r: rc, d: d, why: why, dup: false };
       if (!why.length) {
         key = norm(c) + "|" + norm(l) + "|" + a + "|" + d;
         if (have[key] || seen[key]) { it.dup = true; skipped++; }
@@ -214,14 +222,14 @@
     var names = {}, known = {}, newC = 0, all = 0;
     info.clients.forEach(function (n) { known[norm(n)] = 1; });
     ok.forEach(function (i) { var q = norm(i.c); if (!names[q]) { names[q] = 1; all++; if (!known[q]) newC++; } });
-    return { items: items, ok: ok, dup: skipped, bad: items.filter(function (i) { return i.why.length; }), clients: all, newClients: newC, truncated: truncated };
+    return { items: items, ok: ok, withR: ok.filter(function (i) { return i.r > 0; }).length, dup: skipped, bad: items.filter(function (i) { return i.why.length; }), clients: all, newClients: newC, truncated: truncated };
   }
 
   /* ---------- Modèle à télécharger ---------- */
   function downloadTemplate() {
-    var csv = "\uFEFFClient;E-mail;Téléphone;Description;Montant;Échéance\r\n" +
-      "Studio Kora;contact@studiokora.com;+226 70 00 00 00;Logo et charte graphique;150000;15/12/2026\r\n" +
-      "Café Zaka;;;Menu du mois;45000;20/12/2026\r\n";
+    var csv = "\uFEFFClient;E-mail;Téléphone;Description;Montant;Déjà reçu;Échéance\r\n" +
+      "Studio Kora;contact@studiokora.com;+226 70 00 00 00;Audit;50000;30000;15/12/2026\r\n" +
+      "Café Zaka;;;Menu du mois;45000;;20/12/2026\r\n";
     var blob = new Blob([csv], { type: "text/csv;charset=utf-8" }), a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = "modele-import-payfollow.csv";
     document.body.appendChild(a); a.click();
@@ -248,7 +256,9 @@
     ".pfi select{width:100%;height:46px;border:1.5px solid #e1e7e4;border-radius:12px;padding:0 10px;font:inherit;font-size:15px;background:#fff;color:#10193a}" +
     ".pfi small{display:block;color:#5d6a64;font-size:13px;line-height:1.45;margin-top:6px}" +
     ".pfi input[type=text],.pfi input[type=date]{width:100%;height:48px;border:1.5px solid #e1e7e4;border-radius:12px;padding:0 12px;font:inherit;font-size:16px;background:#fff;color:#10193a;box-sizing:border-box}" +
-    ".pfi .pfi-ok{color:#176330;font-weight:600}.pfi .pfi-new{color:#5d6a64}";
+    ".pfi .pfi-ok{color:#176330;font-weight:600}.pfi .pfi-new{color:#5d6a64}" +
+    ".pfi textarea{width:100%;min-height:150px;border:1.5px solid #e1e7e4;border-radius:12px;padding:10px 12px;font:inherit;font-size:16px;line-height:1.45;background:#fff;color:#10193a;box-sizing:border-box;resize:vertical}" +
+    ".pfi .pfi-row{padding:8px 0;border-top:1px solid #e1e7e4;font-size:14px;line-height:1.4}.pfi .pfi-row b{font-weight:700}";
   function css() {
     if (document.getElementById("pfi-css")) return;
     var st = document.createElement("style"); st.id = "pfi-css"; st.textContent = CSS; document.head.appendChild(st);
@@ -276,14 +286,16 @@
       '<p>Choisissez un fichier Excel (.xlsx) ou CSV. Une ligne du fichier correspond à un paiement.</p>' +
       (msg ? '<div class="pfi-err" role="alert">' + msg + "</div>" : "") +
       '<button type="button" class="pfi-btn" id="pfi-pick" data-focus>Choisir un fichier</button>' +
+      '<button type="button" class="pfi-alt" id="pfi-paste" style="border:1.5px solid #1f7a3d;border-radius:99px;color:#1f7a3d;margin-top:8px">Pas de fichier ? Coller plusieurs lignes</button>' +
       '<button type="button" class="pfi-alt" id="pfi-tpl">Télécharger le modèle</button>' +
-      "<small>Colonnes : Client, E-mail, Téléphone, Description, Montant, Échéance. 500 lignes maximum. Les colonnes avec d’autres noms sont reconnues automatiquement." +
+      "<small>Colonnes : Client, E-mail, Téléphone, Description, Montant, Déjà reçu, Échéance. 500 lignes maximum. Les colonnes avec d’autres noms sont reconnues automatiquement." +
       (inf.pro ? "" : " L’aperçu est gratuit ; l’import demande le Pack Pro.") + "</small>" +
       '<button type="button" class="pfi-alt" id="pfi-x">Annuler</button>' +
       '<input type="file" id="pfi-file" accept=".csv,.xlsx,.xls,.txt,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>');
     var inp = overlay.querySelector("#pfi-file");
     overlay.querySelector("#pfi-pick").addEventListener("click", function () { inp.click(); });
     overlay.querySelector("#pfi-tpl").addEventListener("click", downloadTemplate);
+    overlay.querySelector("#pfi-paste").addEventListener("click", function () { pasteStep1("", "", ""); });
     overlay.querySelector("#pfi-x").addEventListener("click", shut);
     inp.addEventListener("change", function () { var f = inp.files && inp.files[0]; inp.value = ""; if (f) onFile(f); });
   }
@@ -331,6 +343,7 @@
         (R.bad.length ? '<div class="pfi-s ko"><b>' + R.bad.length + "</b><span>ligne" + (R.bad.length > 1 ? "s" : "") + " à corriger (ignorée" + (R.bad.length > 1 ? "s" : "") + ")</span></div>" : "") +
         "</div>";
       if (R.truncated) h += '<div class="pfi-note">Seules les ' + MAXROWS + " premières lignes sont prises en compte.</div>";
+      if (R.withR) h += '<div class="pfi-note">' + R.withR + " paiement" + (R.withR > 1 ? "s ont" : " a") + " un montant déjà reçu : il sera enregistré comme déjà encaissé.</div>";
       if (R.bad.length) {
         h += '<div class="pfi-err"><b>Lignes ignorées</b><ul>' + R.bad.slice(0, 6).map(function (i) { return "<li>Ligne " + i.line + " : " + esc(i.why.join(", ")) + "</li>"; }).join("") +
           (R.bad.length > 6 ? "<li>… et " + (R.bad.length - 6) + " autre" + (R.bad.length - 6 > 1 ? "s" : "") + "</li>" : "") + "</ul></div>";
@@ -376,7 +389,7 @@
     var go = overlay.querySelector("#pfi-go");
     if (go) go.addEventListener("click", function () {
       go.disabled = true; go.textContent = "Import en cours…";
-      var res = PF.importBatch(R.ok.map(function (i) { return { c: i.c, e: i.e, t: i.t, l: i.l, a: i.a, d: i.d }; }));
+      var res = PF.importBatch(R.ok.map(function (i) { return { c: i.c, e: i.e, t: i.t, l: i.l, a: i.a, d: i.d, r: i.r }; }));
       if (!res || !res.ok) {
         return stepChoose(res && res.err === "pro" ? "L’import fait partie du Pack Pro." : "L’import n’a pas pu se faire. Réessayez dans un instant.");
       }
@@ -427,7 +440,7 @@
     return w.join(" ").replace(/[,;:–—-]+\s*$/, "").trim();
   }
   function parseQuick(text, names) {
-    var s = " " + String(text || "").replace(/[\u00a0\u202f]/g, " ").replace(/\s+/g, " ").trim() + " ", date = null, m, out = { c: "", l: "", a: null, d: null, known: false };
+    var s = " " + String(text || "").replace(/[\u00a0\u202f]/g, " ").replace(/\s+/g, " ").trim() + " ", date = null, m, out = { c: "", l: "", a: null, d: null, r: 0, known: false };
     function cut(re) { s = s.replace(re, " "); }
     if ((m = /\bapr[eè]s[- ]demain\b/i.exec(s))) { date = plusDays(2); cut(m[0]); }
     else if ((m = /\bdemain\b/i.exec(s))) { date = plusDays(1); cut(m[0]); }
@@ -442,6 +455,14 @@
     }
     if (!date && (m = /(\d{1,2})[/-](\d{1,2})(?![\d/-])/.exec(s))) { date = yearless(+m[1], +m[2]); if (date) cut(m[0]); }
     out.d = date;
+    /* déjà reçu : « reçu 30000 », « acompte 30000 », « déjà payé 30000 » ; ou « reste 20000 » (calculé avec le total) */
+    var AMT = "(\\d{1,3}(?:[ .,]\\d{3})+(?:[.,]\\d{1,2})?(?!\\d)|\\d+(?:[.,]\\d{1,2})?)\\s*(?:fcfa|f cfa|cfa|xof|francs?|€|eur(?:os?)?|f(?![a-zà-ÿ]))?", reste = null, rm, sm;
+    if ((rm = new RegExp("(?:d[ée]j[àa]\\s+(?:re[çc]u|pay[ée]e?|vers[ée]e?|encaiss[ée]e?)|re[çc]u|acompte|avance|vers[ée]|encaiss[ée])\\s*:?\\s*" + AMT, "i").exec(s))) {
+      var rv = parseAmount(rm[1]); if (rv != null) { out.r = rv; cut(rm[0]); }
+    }
+    if ((sm = new RegExp("(?:il\\s+)?(?:reste|solde|manque)\\s*:?\\s*" + AMT, "i").exec(s))) {
+      reste = parseAmount(sm[1]); if (reste != null) cut(sm[0]);
+    }
     /* montant : de préférence celui qui est suivi d'une devise ou qui termine la phrase */
     var re = /(\d{1,3}(?:[ .,]\d{3})+(?:[.,]\d{1,2})?(?!\d)|\d+(?:[.,]\d{1,2})?)\s*(fcfa|f cfa|cfa|xof|francs?|€|eur(?:os?)?|f(?![a-zà-ÿ]))?/gi, cands = [];
     while ((m = re.exec(s))) {
@@ -452,6 +473,7 @@
     for (i = cands.length - 1; i >= 0; i--) if (cands[i].cur || cands[i].end) { pick = cands[i]; break; }
     if (!pick && cands.length) pick = cands[cands.length - 1];
     if (pick) { out.a = pick.v; s = s.slice(0, pick.at) + " " + s.slice(pick.at + pick.raw.length); }
+    if (reste != null && !(out.r > 0) && out.a != null && reste > 0 && reste < out.a) out.r = Math.round((out.a - reste) * 100) / 100;
     var r = trimConn(s.replace(/\s+/g, " ").trim());
     /* client déjà connu : le plus long nom retrouvé dans le texte */
     var nr = norm(r), best = null;
@@ -479,7 +501,7 @@
       "<p>Écrivez le client, le montant et l’échéance, dans l’ordre que vous voulez.</p>" +
       (msg ? '<div class="pfi-err" role="alert">' + esc(msg) + "</div>" : "") +
       '<label for="pfi-q">Votre paiement</label><input type="text" id="pfi-q" autocomplete="off" enterkeyhint="go" placeholder="Studio Kora 150000 15/12" value="' + esc(text || "") + '" data-focus>' +
-      "<small>Exemples : « Studio Kora logo 150 000 FCFA 15/12 », « Café Zaka 45000 demain », « Nafa 2 500 dans 10 jours ».</small>" +
+      "<small>Exemples : « Studio Kora logo 150 000 FCFA 15/12 », « Café Zaka 45000 reçu 20000 demain », « Nafa 75000 reste 25000 dans 10 jours ».</small>" +
       '<button type="button" class="pfi-btn" id="pfi-qgo">Continuer</button>' +
       '<button type="button" class="pfi-alt" id="pfi-x">Annuler</button>');
     var inp = overlay.querySelector("#pfi-q");
@@ -501,6 +523,8 @@
       '<small id="pfi-cs"></small>' +
       '<label for="pfi-l">Description <span style="font-weight:500;color:#5d6a64">(facultatif)</span></label><input type="text" id="pfi-l" autocomplete="off" value="' + esc(p.l) + '">' +
       '<label for="pfi-a">Montant</label><input type="text" id="pfi-a" inputmode="decimal" autocomplete="off" value="' + (p.a == null ? "" : esc(String(p.a))) + '">' +
+      '<label for="pfi-r">Déjà reçu <span style="font-weight:500;color:#5d6a64">(facultatif)</span></label><input type="text" id="pfi-r" inputmode="decimal" autocomplete="off" value="' + (p.r > 0 ? esc(String(p.r)) : "") + '">' +
+      '<small id="pfi-rs"></small>' +
       '<label for="pfi-d">Échéance</label><input type="date" id="pfi-d" value="' + esc(p.d || "") + '">' +
       '<button type="button" class="pfi-btn" id="pfi-add" data-focus>Ajouter le paiement</button>' +
       '<button type="button" class="pfi-alt" id="pfi-back">Modifier le texte</button>');
@@ -512,23 +536,31 @@
       else { cs.className = "pfi-new"; cs.textContent = "Nouveau client : il sera créé avec ce paiement."; }
     }
     status(); c.addEventListener("input", status);
+    var ra = overlay.querySelector("#pfi-a"), rr = overlay.querySelector("#pfi-r"), rs = overlay.querySelector("#pfi-rs");
+    function reste() {
+      var a = parseAmount(ra.value), r = parseAmount(rr.value);
+      rs.textContent = (a != null && r != null && r <= a) ? "Reste à payer : " + fmtMoney(a - r) : "";
+    }
+    reste(); ra.addEventListener("input", reste); rr.addEventListener("input", reste);
     overlay.querySelector("#pfi-back").addEventListener("click", function () { quickStep1("", Q.text); });
     overlay.querySelector("#pfi-add").addEventListener("click", function () {
       var cl = c.value.trim(), l = overlay.querySelector("#pfi-l").value.trim(), a = parseAmount(overlay.querySelector("#pfi-a").value),
-          d = overlay.querySelector("#pfi-d").value;
+          d = overlay.querySelector("#pfi-d").value, rawR = overlay.querySelector("#pfi-r").value.trim(), rc = rawR ? parseAmount(rawR) : 0;
       if (!cl) return quickStep2Keep("Indiquez le client.");
       if (a == null) return quickStep2Keep("Le montant est manquant ou illisible.");
+      if (rawR && rc == null) return quickStep2Keep("Le montant déjà reçu est illisible.");
+      if (rc > a) return quickStep2Keep("Le montant déjà reçu ne peut pas dépasser le montant total.");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return quickStep2Keep("Choisissez la date d’échéance.");
-      Q.p = { c: cl, l: l, a: a, d: d };
-      var id = PF.addPayment({ c: cl, l: l, a: a, e: d });
+      Q.p = { c: cl, l: l, a: a, d: d, r: rc || 0 };
+      var id = PF.addPayment({ c: cl, l: l, a: a, e: d, r: rc || 0 });
       if (!id) { close(); return; }   /* limite du plan Gratuit : la fenêtre des offres s'affiche */
       Q.added = (Q.added || 0) + 1; quickDone();
     });
-    function quickStep2Keep(m) { Q.p = { c: c.value.trim(), l: overlay.querySelector("#pfi-l").value.trim(), a: parseAmount(overlay.querySelector("#pfi-a").value), d: overlay.querySelector("#pfi-d").value }; quickStep2(m); }
+    function quickStep2Keep(m) { Q.p = { c: c.value.trim(), l: overlay.querySelector("#pfi-l").value.trim(), a: parseAmount(overlay.querySelector("#pfi-a").value), d: overlay.querySelector("#pfi-d").value, r: parseAmount(overlay.querySelector("#pfi-r").value) || 0 }; quickStep2(m); }
   }
   function quickDone() {
     var p = Q.p;
-    shell('<h2 id="pfi-t">Paiement ajouté ✔</h2><p><b>' + esc(p.c) + "</b>" + (p.l ? " · " + esc(p.l) : "") + " · " + fmtMoney(p.a) + " · échéance " + esc(PF.fmtFr(p.d)) + "</p>" +
+    shell('<h2 id="pfi-t">Paiement ajouté ✔</h2><p><b>' + esc(p.c) + "</b>" + (p.l ? " · " + esc(p.l) : "") + " · " + fmtMoney(p.a) + (p.r > 0 ? " (dont " + fmtMoney(p.r) + " déjà reçu)" : "") + " · échéance " + esc(PF.fmtFr(p.d)) + "</p>" +
       '<button type="button" class="pfi-btn" id="pfi-more" data-focus>Ajouter un autre paiement</button>' +
       '<button type="button" class="pfi-alt" id="pfi-end">Terminer</button>');
     overlay.querySelector("#pfi-more").addEventListener("click", function () { quickStep1("", ""); });
@@ -552,5 +584,93 @@
     quickStep1("", "");
   }
 
-  window.PFImport = { open: open, quick: quick, _t: { parseQuick: parseQuick,  parseAmount: parseAmount, parseDate: parseDate, autoMap: autoMap, findHeader: findHeader, parseCSV: parseCSV } };
+
+  /* ================= Coller plusieurs lignes : une ligne = un paiement ================= */
+  var P = null;
+  function parseLines(text, dflt, inf) {
+    var lines = String(text || "").split(/\r\n|\r|\n/).map(function (l) { return l.trim(); }).filter(Boolean), truncated = false;
+    if (lines.length > MAXROWS) { lines = lines.slice(0, MAXROWS); truncated = true; }
+    var names = (PF.clientNames ? PF.clientNames() : []).slice(), have = {}, seen = {}, items = [], dup = 0;
+    inf.keys.forEach(function (k) { have[k] = 1; });
+    lines.forEach(function (ln, idx) {
+      var q = parseQuick(ln.replace(/^[-*•]+\s*/, ""), names), why = [], d = q.d || dflt || "", l = q.l || "Paiement", rc = q.r > 0 ? q.r : 0, key;
+      if (!q.c) why.push("client manquant");
+      if (q.a == null) why.push("montant manquant");
+      if (!d) why.push("échéance manquante");
+      if (rc && q.a != null && rc > q.a + 0.005) why.push("déjà reçu supérieur au montant");
+      var it = { line: idx + 1, c: q.c, l: l, a: q.a, r: rc, d: d, e: "", t: "", why: why, dup: false };
+      if (!why.length) {
+        key = norm(q.c) + "|" + norm(l) + "|" + q.a + "|" + d;
+        if (have[key] || seen[key]) { it.dup = true; dup++; }
+        seen[key] = 1; names.push(q.c);
+      }
+      items.push(it);
+    });
+    var ok = items.filter(function (i) { return !i.why.length && !i.dup; }), known = {}, uniq = {}, nc = 0, all = 0;
+    inf.clients.forEach(function (n) { known[norm(n)] = 1; });
+    ok.forEach(function (i) { var q = norm(i.c); if (!uniq[q]) { uniq[q] = 1; all++; if (!known[q]) nc++; } });
+    return { items: items, ok: ok, dup: dup, bad: items.filter(function (i) { return i.why.length; }), clients: all, newClients: nc, truncated: truncated, withR: ok.filter(function (i) { return i.r > 0; }).length };
+  }
+  function pasteStep1(msg, text, dflt) {
+    shell('<h2 id="pfi-t">Coller plusieurs lignes</h2>' +
+      "<p>Copiez vos notes, une ligne par paiement, et collez-les ici.</p>" +
+      (msg ? '<div class="pfi-err" role="alert">' + esc(msg) + "</div>" : "") +
+      '<label for="pfi-ta">Vos lignes</label><textarea id="pfi-ta" data-focus placeholder="Studio Kora - audit 50000 reçu 30000 15/12&#10;Café Zaka - menu 45000 20/12&#10;Nafa 75000 reste 25000">' + esc(text || "") + "</textarea>" +
+      "<small>Écrivez le client, puis le service après un tiret ou une virgule. Ajoutez le montant, et si besoin « reçu 30000 » (ou « reste 20000 ») et l’échéance. 500 lignes maximum.</small>" +
+      '<label for="pfi-dd">Échéance pour les lignes sans date</label><input type="date" id="pfi-dd" value="' + esc(dflt || plusDays(30)) + '">' +
+      '<button type="button" class="pfi-btn" id="pfi-pgo">Voir l’aperçu</button>' +
+      '<button type="button" class="pfi-alt" id="pfi-back">Retour</button>');
+    overlay.querySelector("#pfi-back").addEventListener("click", function () { stepChoose(); });
+    overlay.querySelector("#pfi-pgo").addEventListener("click", function () {
+      var t = overlay.querySelector("#pfi-ta").value, dd = overlay.querySelector("#pfi-dd").value;
+      if (!t.trim()) return pasteStep1("Collez d’abord au moins une ligne.", "", dd);
+      P = { text: t, dflt: dd, err: "", okMsg: "" }; pastePreview();
+    });
+  }
+  function pastePreview() {
+    var inf = info(), R = parseLines(P.text, P.dflt, inf), pi = PF.planInfo ? PF.planInfo() : {};
+    var h = '<h2 id="pfi-t">Aperçu de l’import</h2>';
+    if (P.okMsg) h += '<div class="pfi-note" role="status">' + esc(P.okMsg) + "</div>";
+    if (P.err) h += '<div class="pfi-err" role="alert">' + esc(P.err) + "</div>";
+    h += '<div class="pfi-g"><div class="pfi-s ok"><b>' + R.ok.length + "</b><span>paiement" + (R.ok.length > 1 ? "s" : "") + " à importer</span></div>" +
+      '<div class="pfi-s"><b>' + R.clients + "</b><span>client" + (R.clients > 1 ? "s" : "") + " dont " + R.newClients + " nouveau" + (R.newClients > 1 ? "x" : "") + "</span></div>" +
+      (R.dup ? '<div class="pfi-s"><b>' + R.dup + "</b><span>déjà présent" + (R.dup > 1 ? "s" : "") + "</span></div>" : "") +
+      (R.bad.length ? '<div class="pfi-s ko"><b>' + R.bad.length + "</b><span>ligne" + (R.bad.length > 1 ? "s" : "") + " à corriger</span></div>" : "") + "</div>";
+    if (R.truncated) h += '<div class="pfi-note">Seules les ' + MAXROWS + " premières lignes sont prises en compte.</div>";
+    if (R.withR) h += '<div class="pfi-note">' + R.withR + " paiement" + (R.withR > 1 ? "s ont" : " a") + " un montant déjà reçu : il sera enregistré comme déjà encaissé.</div>";
+    if (R.bad.length) h += '<div class="pfi-err"><b>Lignes ignorées</b><ul>' + R.bad.slice(0, 6).map(function (i) { return "<li>Ligne " + i.line + " : " + esc(i.why.join(", ")) + "</li>"; }).join("") + (R.bad.length > 6 ? "<li>… et " + (R.bad.length - 6) + " autre" + (R.bad.length - 6 > 1 ? "s" : "") + "</li>" : "") + "</ul></div>";
+    if (inf.demo && R.ok.length) h += '<div class="pfi-note">Les données d’exemple seront retirées pour laisser place à vos vraies données.</div>';
+    if (R.ok.length) {
+      h += "<details><summary>Voir ce qui sera ajouté</summary>" + R.ok.slice(0, 8).map(function (i) {
+        return '<div class="pfi-row"><b>' + esc(i.c) + "</b>" + (i.l && i.l !== "Paiement" ? " · " + esc(i.l) : "") + "<br>" + fmtMoney(i.a) + (i.r > 0 ? " (dont " + fmtMoney(i.r) + " déjà reçu)" : "") + " · échéance " + esc(PF.fmtFr(i.d)) + "</div>";
+      }).join("") + (R.ok.length > 8 ? '<div class="pfi-row">… et ' + (R.ok.length - 8) + " autre" + (R.ok.length - 8 > 1 ? "s" : "") + "</div>" : "") + "</details>";
+    }
+    if (inf.pro) h += '<button type="button" class="pfi-btn" id="pfi-go"' + (R.ok.length ? "" : " disabled") + ' data-focus>Importer ' + R.ok.length + " paiement" + (R.ok.length > 1 ? "s" : "") + "</button>";
+    else if (pi.trialAvailable) h += '<div class="pfi-note">L’import fait partie du Pack Pro. Activez vos 3 mois offerts, sans carte bancaire, pour l’importer tout de suite.</div><button type="button" class="pfi-btn" id="pfi-trial" data-focus>Activer mes 3 mois offerts</button><a class="pfi-alt" href="payfollow-offre.html">Voir mon offre</a>';
+    else h += '<div class="pfi-note">L’import fait partie du Pack Pro. Votre aperçu est prêt.</div><a class="pfi-btn" href="payfollow-offre.html" data-focus>Voir mon offre</a>';
+    h += '<button type="button" class="pfi-alt" id="pfi-edit">Modifier mes lignes</button><button type="button" class="pfi-alt" id="pfi-x">Annuler</button>';
+    shell(h);
+    overlay.querySelector("#pfi-edit").addEventListener("click", function () { pasteStep1("", P.text, P.dflt); });
+    overlay.querySelector("#pfi-x").addEventListener("click", shut);
+    var tr = overlay.querySelector("#pfi-trial");
+    if (tr) tr.addEventListener("click", function () {
+      tr.disabled = true; tr.textContent = "Activation…"; P.err = "";
+      PF.startTrial().then(function (r) {
+        if (!overlay || !P) return;
+        if (r && r.ok) { P.okMsg = "Essai Pro activé jusqu’au " + PF.fmtFr(r.fin) + ". Vous pouvez importer."; P.err = ""; }
+        else P.err = r && r.err === "deja" ? "Votre essai gratuit a déjà été utilisé. Voyez votre offre pour continuer." : r && r.err === "pro" ? "Votre compte est déjà en Pack Pro." : r && r.err === "absent" ? "L’activation n’est pas encore disponible. Réessayez plus tard." : r && r.err === "session" ? "Votre session a expiré. Reconnectez-vous, puis réessayez." : "Activation impossible. Vérifiez votre connexion et réessayez.";
+        pastePreview();
+      });
+    });
+    var go = overlay.querySelector("#pfi-go");
+    if (go) go.addEventListener("click", function () {
+      go.disabled = true; go.textContent = "Import en cours…";
+      var res = PF.importBatch(R.ok.map(function (i) { return { c: i.c, e: "", t: "", l: i.l, a: i.a, d: i.d, r: i.r }; }));
+      if (!res || !res.ok) { P.err = res && res.err === "pro" ? "L’import fait partie du Pack Pro." : "L’import n’a pas pu se faire. Réessayez dans un instant."; return pastePreview(); }
+      stepDone(res);
+    });
+  }
+  function openPaste() { if (!overlay) open(); pasteStep1("", "", ""); }
+
+  window.PFImport = { open: open, quick: quick, paste: openPaste, _t: { parseLines: parseLines, parseQuick: parseQuick,  parseAmount: parseAmount, parseDate: parseDate, autoMap: autoMap, findHeader: findHeader, parseCSV: parseCSV } };
 })();
