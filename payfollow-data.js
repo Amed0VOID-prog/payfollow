@@ -86,7 +86,7 @@
   function limited() {
     var p = plan();
     if (paidActive(p)) return false;
-    return (p.plan === "gratuit" || p.plan === "pro" || p.plan === "premium") && !(p.fin && p.fin >= today());
+    return !(p.fin && p.fin >= today());   /* offre inconnue = Gratuit (jamais Pro par défaut) */
   }
   function realCount() { return db.clients.filter(function (c) { return !c.x; }).length; }
   function canAdd() { return !limited() || realCount() < LIMIT; }
@@ -470,12 +470,13 @@
   function startTrial() {
     return after(getSb(), 8000).then(function (sb) {
       if (!sb || sb.timeout) return { ok: false, err: "reseau" };
-      return after(sb.rpc("activer_essai_pro"), 15000).then(function (res) {
+      return after(sb.rpc("reclamer_place"), 15000).then(function (res) {
         if (!res || res.timeout) return { ok: false, err: "reseau" };
         if (res.error) {
           var m = String(res.error.message || ""), c = String(res.error.code || "");
           if (c === "PGRST202" || /could not find|schema cache/i.test(m)) return { ok: false, err: "absent" };
-          if (/ESSAI_DEJA_UTILISE/.test(m)) return { ok: false, err: "deja" };
+          if (/ESSAI_DEJA_UTILISE|PLACE_DEJA_PRISE/.test(m)) return { ok: false, err: "deja" };
+          if (/PLUS_DE_PLACES/.test(m)) return { ok: false, err: "complet" };
           if (/DEJA_PRO/.test(m)) return { ok: false, err: "pro" };
           if (/NON_CONNECTE/.test(m)) return { ok: false, err: "session" };
           return { ok: false, err: "reseau" };

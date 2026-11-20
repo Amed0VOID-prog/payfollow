@@ -48,7 +48,7 @@ footer{padding:20px 0 40px;color:var(--mut);font-size:14px}footer .w{display:fle
 <main class="w">
 <div class="hero"><h1>Un client te doit de l’argent ? <em>Ne l’oublie plus.</em></h1>
 <p class="lead">PayFollow te montre qui a payé, qui est en retard, et prépare la relance pour toi.</p>
-<div class="cta"><a class="btn" href="payfollow-connexion-v2.html">Essayer gratuitement</a><a class="btn ghost" href="payfollow-tarifs.html">Voir les tarifs</a></div></div>
+<div class="cta"><a class="btn" href="payfollow-connexion-v2.html">Essayer maintenant</a><a class="btn ghost" href="payfollow-tarifs.html">Voir les tarifs</a></div></div>
 
 <section class="c"><h2 class="rv">Vois tout d’un coup d’œil</h2><p class="lead rv">Ton tableau de bord, en clair. Exemple :</p>
 <div class="grid g3 rv"><div class="sc grn"><div class="t">Reste à encaisser</div><div class="s">Argent encore attendu</div><span class="v" data-to="4250" data-u="&nbsp;€">4 250 €</span></div>
@@ -62,13 +62,13 @@ footer{padding:20px 0 40px;color:var(--mut);font-size:14px}footer .w{display:fle
 
 <section class="c"><h2 class="rv">Comment ça marche</h2><ol class="steps card"><li class="rv">Ajoute tes clients.</li><li class="rv">Note leurs paiements, même par morceaux.</li><li class="rv">Relance ceux qui sont en retard.</li></ol></section>
 
-<section><div class="offer rv"><h2>10 places pour les premiers testeurs</h2><p>3 mois du pack Pro offerts, avec un accompagnement personnel pour que l’outil te serve vraiment.</p><a class="btn" href="mailto:kaboreabdoulakim70@gmail.com?subject=Place%20testeur%20PayFollow">Je veux une place</a></div></section>
+<section id="places"><div class="offer rv"><h2 id="placesTitle">10 places pour les premiers testeurs</h2><p>3 mois du pack Pro offerts, avec un accompagnement personnel pour que l’outil te serve vraiment.</p><a class="btn" id="btnPlace" href="mailto:kaboreabdoulakim70@gmail.com?subject=Place%20testeur%20PayFollow">Je veux une place</a><p id="placesNote" role="status" style="margin:12px 0 0;font-size:14px;font-weight:600;color:#c9d3ce"></p></div></section>
 
 <section class="c"><h2 class="rv">Pourquoi PayFollow</h2><p class="lead rv">Simple, en français, pensé pour les freelances et les petites agences. Tu choisis ta devise : euro, FCFA et d’autres bientôt.</p>
 <div class="mini rv"><span>Gratuit <b>0 €</b></span><span>Pro <b>4 €/mois</b></span><span>Premium <b>9 €/mois</b></span></div>
 <a class="btn ghost rv" href="payfollow-tarifs.html">Voir les tarifs</a></section>
 
-<section class="c"><h2 class="rv">Prêt à ne plus courir après tes paiements ?</h2><a class="btn rv" href="payfollow-connexion-v2.html">Essayer gratuitement</a></section>
+<section class="c"><h2 class="rv">Prêt à ne plus courir après tes paiements ?</h2><a class="btn rv" href="payfollow-connexion-v2.html">Essayer maintenant</a></section>
 </main>
 <footer><div class="w"><span>© PayFollow</span><span><a href="payfollow-conditions.html">Conditions d’utilisation</a> · <a href="payfollow-confidentialite.html">Confidentialité</a> · <a href="payfollow-politique-paiement.html">Politique de paiement</a> · <a href="mailto:kaboreabdoulakim70@gmail.com">Contact</a></span></div></footer>
 <script>
@@ -78,5 +78,30 @@ function cnt(el){var to=+el.dataset.to,u=el.dataset.u||"";if(rm){el.textContent=
 function show(t){t.classList.add("in");t.querySelectorAll("[data-to]").forEach(cnt)}
 var io=window.IntersectionObserver&&new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){show(x.target);io.unobserve(x.target)}})},{threshold:.15});
 document.querySelectorAll(".rv").forEach(function(el){io?io.observe(el):show(el)});
+})();
+</script>
+<script src="payfollow-supabase.js"></script>
+<script>
+/* Compteur des places testeurs : lu dans la base (fonction places_restantes). Si la lecture échoue, le bouton reste « écris-moi ». */
+(function(){
+  var btn=document.getElementById("btnPlace"),note=document.getElementById("placesNote"),h=document.getElementById("placesTitle");
+  if(!btn||!window.pfSb)return;
+  var tm=new Promise(function(r){setTimeout(function(){r(null)},7000)});
+  Promise.race([Promise.resolve(window.pfSb),tm]).then(function(sb){
+    if(!sb||!sb.rpc)return null;
+    return Promise.race([sb.rpc("places_restantes"),tm]);
+  }).then(function(res){
+    var d=res&&res.data; if(!d||typeof d.restantes!=="number")return;
+    var n=d.restantes,m=d.max;
+    h.textContent=m+" places pour les premiers testeurs";
+    if(n>0){
+      btn.setAttribute("href","payfollow-connexion-v2.html?place=1");
+      note.textContent=n===1?"Dernière place disponible !":"Il reste "+n+" places sur "+m+".";
+    }else{
+      btn.textContent="Me mettre sur la liste d’attente";
+      btn.setAttribute("href","mailto:kaboreabdoulakim70@gmail.com?subject=Liste%20d%E2%80%99attente%20PayFollow");
+      note.textContent="Les "+m+" premières places sont prises.";
+    }
+  }).catch(function(){});
 })();
 </script></body></html>

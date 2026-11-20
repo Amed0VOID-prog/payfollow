@@ -152,6 +152,9 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
 (function(){
   var card = document.getElementById("card");
 
+  /* Arrivée depuis « Je veux une place » : on garde l'intention jusqu'à la connexion (Google, e-mail de confirmation…) */
+  if (/[?&]place=1(&|$)/.test(location.search)) { try { localStorage.setItem("payfollow_place", String(Date.now())); } catch (e) {} }
+
   function setMode(m){
     card.dataset.mode = m;
     document.querySelectorAll(".msg").forEach(function(x){ x.textContent = ""; x.className = "msg"; });
@@ -231,6 +234,16 @@ button:focus-visible,a:focus-visible{outline:3px solid rgba(31,122,61,.45);outli
       var last = localStorage.getItem("pf_uid");
       if (uid && last !== uid) clearLocal();   /* autre compte, ou première connexion sur ce navigateur */
       if (uid) localStorage.setItem("pf_uid", uid);
+    } catch (e) {}
+    /* Place testeur demandée depuis la page d'accueil : la base vérifie qu'il en reste et donne les 3 mois de Pro */
+    try {
+      var want = localStorage.getItem("payfollow_place");
+      if (want) {
+        localStorage.removeItem("payfollow_place");
+        if (sb && user && window.PF && Date.now() - (+want || 0) < 172800000) {
+          await Promise.race([PF.startTrial(), new Promise(function (r) { setTimeout(r, 8000); })]);
+        }
+      }
     } catch (e) {}
     var p = null;
     if (isNew) {
