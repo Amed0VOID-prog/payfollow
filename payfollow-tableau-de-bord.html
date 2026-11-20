@@ -229,6 +229,12 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 .pk button:hover,.pk button:active{background:var(--gp)}
 .pk .add{color:var(--g);font-weight:700}
 .pk .nn{padding:12px;color:var(--mut)}
+.grid[hidden],.card[hidden]{display:none!important}
+.kpis.k3 .kpi:last-child{grid-column:auto}
+@media (min-width:900px){.kpis.k3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.lockc{margin-top:12px}.lockc p{margin:6px 0 14px;color:var(--mut)}
+.ghost{display:flex;align-items:flex-end;gap:10px;height:84px;filter:blur(3px);opacity:.6;margin:14px 0}.ghost i{flex:1;border-radius:8px 8px 0 0;background:var(--gp)}
+.lockb{display:inline-block;background:var(--g);color:#fff;font-weight:700;padding:11px 20px;border-radius:99px}
 </style>
 </head>
 <body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script><script src="payfollow-data.js"></script>
@@ -258,7 +264,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
     <div class="hello rv"><h1>Bonjour Amed</h1><p>Voici où en sont vos paiements.</p></div>
     <div class="dt rv" style="--i:1"><label class="dq"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="gq" type="search" placeholder="Rechercher un client…" autocomplete="off" aria-label="Rechercher un client"><ul class="dr2" id="gres" hidden></ul></label><button type="button" class="b1" data-open="client">+ Ajouter un client</button><button type="button" class="b2" data-open="paiement">+ Ajouter un paiement</button></div>
     <div class="grid kpis" id="kpis"></div>
-    <div class="grid two">
+    <div class="grid two" id="adv">
       <section class="card rv" style="--i:5" aria-labelledby="h-enc">
         <div class="head"><div><h2 id="h-enc">Aperçu des paiements</h2><div class="sub">Reçu et attendu, mois par mois</div></div>
           <div class="seg" id="seg"><button data-p="3" aria-pressed="false">3 mois</button><button data-p="6" aria-pressed="true">6 mois</button><button data-p="12" aria-pressed="false">Année</button></div></div>
@@ -269,6 +275,12 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
         <div class="donut"><div class="ring" id="ring"><div id="ringc"></div></div><ul class="leg" id="leg"></ul></div>
       </section>
     </div>
+    <section class="card lockc rv" id="lock" hidden>
+      <h2>Graphiques et analyse des retards</h2>
+      <div class="ghost" aria-hidden="true"><i style="height:35%"></i><i style="height:55%"></i><i style="height:45%"></i><i style="height:75%"></i><i style="height:60%"></i><i style="height:90%"></i></div>
+      <p>Le graphique reçu et attendu mois par mois, et les retards par ancienneté, sont disponibles avec le Pack Pro.</p>
+      <a class="lockb" href="payfollow-tarifs.html">Voir le Pack Pro</a>
+    </section>
     <div class="grid two two2" style="margin-top:12px">
       <section class="card rv" style="--i:7" aria-labelledby="h-rel">
         <h2 id="h-rel">À relancer en priorité</h2><div class="sub">Les retards les plus anciens d’abord</div>
@@ -368,6 +380,8 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
       ["Encaissé en " + PF.monthName().toLowerCase(), now, "m", evo, 0, "inbox", ""],
       ["Payés à temps", rate, "p", CONS ? ONT + " sur " + CONS + " échus" : "Aucun paiement échu", 0, "check", '<div class="split solo"><i style="width:'+rate.toFixed(0)+'%"></i></div>']
     ];
+    var proK = PF.isPro(); if (!proK) K = K.slice(0, 3);
+    $("kpis").className = "grid kpis" + (proK ? "" : " k3");
     $("kpis").innerHTML = K.map(function(k,i){
       return '<article class="card kpi rv" style="--i:'+(i+1)+'"><div class="kt"><span class="tile'+(k[4]?" bad":"")+'"><svg class="ic" viewBox="0 0 24 24">'+IC[k[5]]+'</svg></span>'+k[0]+'</div><span class="v" data-to="'+k[1]+'" data-f="'+k[2]+'"></span><span class="chip'+(k[4]?" bad":"")+'">'+k[3]+'</span>'+k[6]+'</article>';
     }).join("");
@@ -379,6 +393,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
   function fmtR(n){ return Math.round(n).toLocaleString("fr-FR") + "\u00a0" + CUR[cur].s; }
   function k1(n){ return (Math.round(n/100)/10).toLocaleString("fr-FR",{minimumFractionDigits:1,maximumFractionDigits:1}) + "\u00a0k"; }
   function renderChart(anim){
+    if (!PF.isPro()) return;
     var d = PF.monthly(period), n = d.length, last = d[n-1], got = last[1], exp = last[2];
     var pct = exp ? Math.min(got/exp*100, 100) : 0;
     $("es-m").textContent = PF.monthName() + ", en cours";
@@ -439,6 +454,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
     var rt; window.addEventListener("resize", function(){ clearTimeout(rt); rt = setTimeout(function(){ if (wrap.clientWidth) renderChart(false); }, 120); });
   })();
   function renderAge(anim){
+    if (!PF.isPro()) return;
     var tot = AGE.reduce(function(s,x){return s+x[1];},0), acc = 0;
     $("ring").style.background = tot ? "conic-gradient("+AGE.map(function(x){ var a = acc/tot*100; acc += x[1]; return x[2]+" "+a+"% "+(acc/tot*100)+"%"; }).join(",")+")" : "#e8f3ec";
     $("ringc").innerHTML = '<span><span id="rn"></span><small>en retard</small></span>';
@@ -453,7 +469,8 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
       return '<li><span class="dot">'+p[0][0]+'</span><div class="n"><b>'+p[0]+'</b><span class="sub">'+p[1]+'</span></div><span class="pill2 '+p[3]+' '+p[3]+'">'+p[4]+'</span><span class="a">'+fmtR(p[2])+'</span></li>';
     }).join("");
   }
-  function renderAll(anim){ compute(); renderKpis(anim); renderChart(anim); renderAge(anim); renderLists(); }
+  function applyPlan(){ var pro = PF.isPro(); $("adv").hidden = !pro; $("lock").hidden = pro; }
+  function renderAll(anim){ applyPlan(); compute(); renderKpis(anim); renderChart(anim); renderAge(anim); renderLists(); }
 
   window.pfRefresh = function(){ renderAll(false); };
 
@@ -509,6 +526,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px}
 
   document.addEventListener("click", function(e){ var b = e.target.closest(".rb"); if (b){ window.location.href = "payfollow-relances.html#" + encodeURIComponent(b.closest("li").querySelector("b").textContent); } });
   mark(); renderAll(true);
+  if (PF.refreshPlan) PF.refreshPlan().then(function(i){ if (i) renderAll(false); });
   moveInd(); requestAnimationFrame(function(){ ind.classList.add("ready"); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveInd);
 })();

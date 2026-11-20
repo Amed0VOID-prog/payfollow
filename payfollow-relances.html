@@ -214,6 +214,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
 .cpick button b{color:var(--mut)}
 .cpick button[aria-checked="true"]{border-color:var(--g);background:var(--gp);color:var(--gd)}
 .cpick button[aria-checked="true"] b{color:var(--gd)}
+.mrow{display:flex;gap:16px;flex-wrap:wrap;margin:6px 2px 4px}.lnk{border:0;background:none;color:var(--g);font-weight:700;font-size:13.5px;padding:6px 0;text-decoration:underline}.lnk[hidden]{display:none}.lnk .pro{display:inline-block;background:#fef3e2;color:var(--amb);border-radius:99px;padding:1px 8px;font-size:11px;text-decoration:none;margin-left:6px}
 </style>
 </head>
 <body><script>window.pfLog=function(m){if(!/^(Paiement|Versement|Client|Relance)/.test(m))return;try{var a=JSON.parse(localStorage.getItem("pf_journal")||"[]");a.unshift({t:m,d:new Date().toISOString().slice(0,10),k:Date.now()});localStorage.setItem("pf_journal",JSON.stringify(a.slice(0,80)))}catch(e){}}</script>
@@ -281,7 +282,18 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
   function iso(dt){return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
   function tint(n){var i=n.charCodeAt(0)%TINT.length;return "--c:"+TINT[i][0]+";--bgc:"+TINT[i][1];}
   function hello(){return new Date().getHours()>=18?"Bonsoir":"Bonjour";}
-  function text(p,t){
+  /* Modèles personnalisés (Pro) : le texte modifié est gardé avec des repères {client}, {montant}, {service}, {date}, {salut} */
+  function mods(){try{return JSON.parse(localStorage.getItem("pf_modeles")||"{}")||{};}catch(e){return {};}}
+  function setMods(o){try{localStorage.setItem("pf_modeles",JSON.stringify(o));return true;}catch(e){return false;}}
+  function isPro(){return !!(PF.isPro&&PF.isPro());}
+  function fill(tpl,p){return tpl.split("{salut}").join(hello()).split("{client}").join(p.c).split("{montant}").join(fmt(rest(p))).split("{service}").join(p.l).split("{date}").join(dayLong(p.d));}
+  function toTpl(s,p){
+    var r=s;
+    [[dayLong(p.d),"{date}"],[fmt(rest(p)),"{montant}"],[p.l,"{service}"],[p.c,"{client}"]].forEach(function(x){if(x[0]&&x[0].length>=2)r=r.split(x[0]).join(x[1]);});
+    return r.replace(/^(Bonjour|Bonsoir)/,"{salut}");
+  }
+  function text(p,t){var m=mods();return (isPro()&&m[t])?fill(m[t],p):base(p,t);}
+  function base(p,t){
     var r=fmt(rest(p)),d=dayLong(p.d),h=hello();
     if(t===0)return h+" "+p.c+", comment allez-vous ? 🙂\n\nC’est juste pour vous rappeler que la date limite de paiement pour « "+p.l+" », le "+d+", est dépassée : il reste "+r+" à régler 😃\n\nPouvez-vous me dire quand le règlement sera fait ?\n\nPassez une excellente journée 👋";
     if(t===1)return h+" "+p.c+",\n\nSauf erreur de ma part, le solde de "+r+" pour « "+p.l+" », échu le "+d+", n’est pas encore réglé.\n\nJe vous prie de régler ce solde d’ici 3 jours, ou de me contacter si un problème retarde le paiement.";
@@ -319,6 +331,7 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
       '<div class="big">'+fmt(rest(p))+'</div><span class="pill2 late">'+ago(p)+' jours de retard</span>'+
       '<div class="tn" id="tn">'+TONES.map(function(n,k){return '<button data-t="'+k+'" aria-pressed="'+(k===t)+'">'+n+'</button>';}).join("")+'</div>'+
       '<textarea class="msg" id="msg" aria-label="Message de relance"></textarea>'+
+      '<div class="mrow"><button type="button" class="lnk" id="sv">Enregistrer comme mon modèle<span class="pro">Pro</span></button><button type="button" class="lnk" id="rs" hidden>Revenir au texte d’origine</button></div>'+
       '<button class="go" id="wa">Envoyer par WhatsApp</button>'+
       '<div class="two"><button class="go2" id="em">E-mail</button><button class="go2" id="cp">Copier</button></div>'+
       '<button class="go2" id="mk" style="margin-top:10px">Marquer comme relancé</button>'+
@@ -326,6 +339,18 @@ main{max-width:1180px;margin:0 auto;padding:0 16px;animation:vin .42s cubic-bezi
     var msg=$("msg");msg.value=text(p,t);
     $("tn").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
       this.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed",x===b?"true":"false");});msg.value=text(p,+b.dataset.t);});
+    function curT(){var b=document.querySelector('#tn [aria-pressed="true"]');return b?+b.dataset.t:t;}
+    function syncRs(){$("rs").hidden=!(isPro()&&mods()[curT()]);}
+    syncRs();
+    $("tn").addEventListener("click",syncRs);
+    $("sv").addEventListener("click",function(){
+      if(!isPro()){toast("Les modèles personnalisés sont disponibles avec le Pack Pro.");return;}
+      var k=curT(),m=mods();m[k]=toTpl(msg.value,p);
+      if(setMods(m)){toast("Modèle « "+TONES[k]+" » enregistré");syncRs();}else toast("Enregistrement impossible");
+    });
+    $("rs").addEventListener("click",function(){
+      var k=curT(),m=mods();delete m[k];setMods(m);msg.value=base(p,k);syncRs();toast("Texte d’origine rétabli");
+    });
     $("wa").addEventListener("click",function(){window.open("https://wa.me/?text="+encodeURIComponent(msg.value),"_blank");});
     $("em").addEventListener("click",function(){location.href="mailto:?subject="+encodeURIComponent("Rappel de paiement – "+p.l)+"&body="+encodeURIComponent(msg.value);});
     $("cp").addEventListener("click",function(){
